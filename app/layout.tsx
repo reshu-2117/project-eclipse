@@ -7,9 +7,9 @@ import "@fontsource/cormorant-garamond/latin-500-italic.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Project Eclipse — Relight Lantern 17",
+  title: "Project Eclipse — Lantern 17 is failing",
   description:
-    "A sunless rogue planet kept alive by orbital Lanterns. One has gone dark. Design the mission that brings the light back.",
+    "A sunless rogue planet kept alive by orbital Lanterns. One is failing. Design the mission that finds out why.",
 };
 
 export const viewport: Viewport = {

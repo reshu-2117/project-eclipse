@@ -5,7 +5,7 @@ export function World() {
   const cells = [
     { k: "World", big: <>Eclipse-01</>, p: "A rogue planet. No star, no orbit around a sun. Just drift." },
     { k: "Light source", big: <>24 <em>Lanterns</em></>, p: "Orbital stations that hold back the dark for the surface below." },
-    { k: "Threat", big: <>Ice debris</>, p: "Frozen fragments crossing the Lantern ring. One hit is enough." },
+    { k: "Threat", big: <>Ice debris</>, p: "Frozen fragments crossing the Lantern network. One hit is enough." },
     { k: "At stake", big: <>People, <em>below</em></>, p: "Four settlements live beneath the ice, on light from the Lanterns." },
   ];
   return (
