@@ -4,9 +4,104 @@ import { useEffect, useRef, type CSSProperties, type PointerEvent } from "react"
 
 const N = 24;
 const TARGET = 16; // Lantern 17 (zero-based index)
-const RX = 0.44; // orbit radius as a fraction of the stage
-const RY = 0.11;
-const TILT = (-10 * Math.PI) / 180;
+const BASE_TILT = (-10 * Math.PI) / 180;
+
+/**
+ * Every Lantern has its own orbit: a different size, eccentricity, tilt and speed, with the planet at
+ * the focus of each ellipse. Seeded, so the sky is the same on every visit. Sizes are fractions of
+ * the stage width; speed follows Kepler's third law (small orbits run faster).
+ */
+interface HeroOrbit {
+  a: number;
+  e: number;
+  /** direction of the closest point, rad (each orbit points a different way) */
+  w: number;
+  /** how edge-on the orbit is to the viewer, 0 to 1 */
+  k: number;
+  tilt: number;
+  phase: number;
+  speed: number;
+}
+
+function mulberry32(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const ORBITS: HeroOrbit[] = (() => {
+  const rnd = mulberry32(0x17e1195e);
+  const between = (lo: number, hi: number) => lo + (hi - lo) * rnd();
+  return Array.from({ length: N }, (_, i) => {
+    if (i === TARGET) {
+      // Lantern 17: a clear ellipse, starting on the near side of the planet
+      return { a: 0.4, e: 0.22, w: 0, k: 0.26, tilt: BASE_TILT, phase: 2.4, speed: 0.00006 * Math.pow(0.44 / 0.4, 1.5) };
+    }
+    const a = between(0.27, 0.39);
+    return {
+      a,
+      e: between(0.06, 0.3),
+      w: between(0, Math.PI * 2),
+      k: between(0.12, 0.45),
+      tilt: BASE_TILT + between(-0.5, 0.5),
+      phase: between(0, Math.PI * 2),
+      speed: 0.00006 * Math.pow(0.44 / a, 1.5),
+    };
+  });
+})();
+
+function kepler(M: number, e: number) {
+  let E = M + e * Math.sin(M);
+  for (let k = 0; k < 6; k++) E -= (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+  return E;
+}
+
+/**
+ * Point on an orbit at eccentric anomaly E: stage fractions from the planet's centre, plus `v`, how
+ * far the point is toward (+) or away from (-) the viewer, which decides front and back.
+ */
+function orbitPoint(o: HeroOrbit, E: number): { x: number; y: number; v: number } {
+  const u0 = o.a * (Math.cos(E) - o.e);
+  const v0 = o.a * Math.sqrt(1 - o.e * o.e) * Math.sin(E);
+  const cw = Math.cos(o.w);
+  const sw = Math.sin(o.w);
+  const u = u0 * cw - v0 * sw;
+  const v = u0 * sw + v0 * cw;
+  const ct = Math.cos(o.tilt);
+  const st = Math.sin(o.tilt);
+  const sy = v * o.k;
+  return { x: u * ct - sy * st, y: u * st + sy * ct, v };
+}
+
+/** SVG paths (viewBox 0..100) for the parts of an orbit in front of, and behind, the planet. */
+function orbitPaths(o: HeroOrbit) {
+  const steps = 120;
+  const pts = Array.from({ length: steps + 1 }, (_, k) => orbitPoint(o, (k / steps) * Math.PI * 2));
+  let front = "";
+  let back = "";
+  let prevHalf = "";
+  for (let k = 0; k < steps; k++) {
+    const a = pts[k];
+    const b = pts[k + 1];
+    const half = a.v + b.v > 0 ? "front" : "back";
+    const seg = `${prevHalf === half ? "" : `M${(50 + a.x * 100).toFixed(2)} ${(50 + a.y * 100).toFixed(2)} `}L${(50 + b.x * 100).toFixed(2)} ${(50 + b.y * 100).toFixed(2)} `;
+    if (half === "front") front += seg;
+    else back += seg;
+    prevHalf = half;
+  }
+  return { front, back };
+}
+
+const PATHS = ORBITS.map(orbitPaths);
+const OTHER_BACK = PATHS.filter((_, i) => i !== TARGET).map((p) => p.back).join(" ");
+const OTHER_FRONT = PATHS.filter((_, i) => i !== TARGET).map((p) => p.front).join(" ");
+const TARGET_BACK = PATHS[TARGET].back;
+const TARGET_FRONT = PATHS[TARGET].front;
 
 export default function Hero({ lit17 }: { lit17: boolean }) {
   const heroRef = useRef<HTMLElement>(null);
@@ -25,25 +120,20 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
     });
     ro.observe(stage);
 
-    const ct = Math.cos(TILT);
-    const st = Math.sin(TILT);
     const t0 = performance.now();
     let raf = 0;
 
     function place(elapsed: number) {
-      const base = 0.9 + elapsed * 0.00006;
       for (let i = 0; i < N; i++) {
         const el = dots.current[i];
         if (!el) continue;
-        const a = base + (i * Math.PI * 2) / N;
-        const dx = RX * Math.cos(a) * size;
-        const dy = RY * Math.sin(a) * size;
-        const x = dx * ct - dy * st;
-        const y = dx * st + dy * ct;
-        const s = Math.sin(a);
+        const o = ORBITS[i];
+        const E = kepler(o.phase + elapsed * o.speed, o.e);
+        const p = orbitPoint(o, E);
+        const s = Math.max(-1, Math.min(1, p.v / (o.a * (1 + o.e))));
         const front = s > 0;
         const depth = (s + 1) / 2;
-        el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${(0.7 + depth * 0.45).toFixed(3)})`;
+        el.style.transform = `translate3d(${(p.x * size).toFixed(1)}px, ${(p.y * size).toFixed(1)}px, 0) scale(${(0.7 + depth * 0.45).toFixed(3)})`;
         el.style.zIndex = front ? "6" : "2";
         el.style.opacity = front ? "1" : (0.35 + depth * 0.6).toFixed(2);
       }
@@ -115,9 +205,8 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
 
         <div className="stage" ref={stageRef}>
           <svg className="orbit-svg orbit-back" viewBox="0 0 100 100" aria-hidden="true">
-            <g transform="rotate(-10 50 50)">
-              <path d="M 6 50 A 44 11 0 0 1 94 50" stroke="#FFB547" strokeOpacity="0.22" strokeWidth="0.25" strokeDasharray="0.6 0.9" fill="none" />
-            </g>
+            <path d={OTHER_BACK} stroke="#FFB547" strokeOpacity="0.07" strokeWidth="0.18" fill="none" />
+            <path d={TARGET_BACK} stroke="#FFB547" strokeOpacity="0.24" strokeWidth="0.25" strokeDasharray="0.6 0.9" fill="none" />
           </svg>
 
           <div className="planet" aria-hidden="true">
@@ -125,9 +214,8 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
           </div>
 
           <svg className="orbit-svg orbit-front" viewBox="0 0 100 100" aria-hidden="true">
-            <g transform="rotate(-10 50 50)">
-              <path d="M 94 50 A 44 11 0 0 1 6 50" stroke="#FFB547" strokeOpacity="0.45" strokeWidth="0.25" fill="none" />
-            </g>
+            <path d={OTHER_FRONT} stroke="#FFB547" strokeOpacity="0.14" strokeWidth="0.18" fill="none" />
+            <path d={TARGET_FRONT} stroke="#FFB547" strokeOpacity="0.5" strokeWidth="0.25" fill="none" />
           </svg>
 
           {Array.from({ length: N }, (_, i) => {
