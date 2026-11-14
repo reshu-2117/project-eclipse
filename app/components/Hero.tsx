@@ -420,9 +420,9 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
             <em>So they built one.</em>
           </h1>
           <p className="lede">
-            A rogue planet drifting without a star, kept alive by a ring of orbital Lanterns. One of them has gone
-            dark. You are the engineer sent to bring it back: design the spacecraft, choose the science, and
-            relight Lantern 17.
+            A rogue planet drifting without a star, kept alive by a network of orbital Lanterns. One of them is
+            failing, with a huge piece of ice on its way. You are one of 300 crews sent to find out why: build the
+            spacecraft, read the evidence, and make the hard call.
           </p>
           <div className="hero-actions">
             <a className="btn btn-lantern" href="#mission">
@@ -463,7 +463,7 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
           <span ref={anchorRef} className="lantern-anchor">
             <a href="#mission" className={lit17 ? "lantern-tag ok" : "lantern-tag"}>
               <i className={lit17 ? "dot dot-amber" : "dot dot-ember"} />
-              L-17 · {lit17 ? "RELIT" : "OFFLINE"}
+              L-17 · {lit17 ? "RELIT" : "DEGRADED"}
             </a>
           </span>
 
@@ -473,7 +473,7 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
           <p className="planet-label" style={{ right: "4%", bottom: "1.5%", textAlign: "right" }}>
             NO STAR · NO SUNRISE
             <br />
-            <b>SUBSURFACE OCEAN</b> · TRACES OF LIFE
+            <b>FOUR SETTLEMENTS</b> · BENEATH THE ICE
           </p>
         </div>
       </div>

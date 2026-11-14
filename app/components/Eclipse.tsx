@@ -7,6 +7,7 @@ import Network from "./Network";
 import OrbitalSection from "./OrbitalSection";
 import Transmission from "./Transmission";
 import MissionDesigner, { type CraftId, type ObjectiveId } from "./MissionDesigner";
+import LabTeaser from "./LabTeaser";
 import { Crew, Footer, Systems, World } from "./Sections";
 
 export default function Eclipse() {
@@ -60,6 +61,7 @@ export default function Eclipse() {
           onCraft={setCraft}
           onAuthorise={() => setLit17(true)}
         />
+        <LabTeaser />
         <Systems />
         <Crew />
       </main>

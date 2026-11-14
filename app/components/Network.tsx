@@ -11,7 +11,7 @@ function lanternFor(i: number, lit17: boolean) {
   if (i === 16) {
     return lit17
       ? { id, status: "relit" as Status, output: 100 }
-      : { id, status: "offline" as Status, output: 0 };
+      : { id, status: "offline" as Status, output: 61 };
   }
   if (DAMAGED[i] !== undefined) return { id, status: "damaged" as Status, output: DAMAGED[i] };
   return { id, status: "online" as Status, output: 90 + ((i * 7) % 10) };
@@ -27,12 +27,12 @@ const COPY: Record<Status, { label: string; text: string }> = {
     text: "Its collector has been scarred by ice debris drifting through the orbit. Output is falling. It will need attention soon.",
   },
   offline: {
-    label: "Offline",
-    text: "Struck by ice debris and gone dark. The surface beneath it is already freezing over. This is your mission.",
+    label: "Failing",
+    text: "Its optics are damaged and its light is falling: 61% and dropping. Three telemetry channels have gone silent, and a huge piece of ice is tracked toward it. This is your mission.",
   },
   relit: {
     label: "Relit",
-    text: "Back online. Light is returning to the surface below. The ring is whole again, for now.",
+    text: "Back online. Light is returning to the surface below. The network is whole again, for now.",
   },
 };
 
@@ -51,7 +51,7 @@ export default function Network({ lit17 }: { lit17: boolean }) {
             The Lantern Network <b>{"//"}</b> 24 stations
           </p>
           <h2 className="display" id="network-title">
-            Twenty-four lights. <em>One is out.</em>
+            Twenty-four lights. <em>One is failing.</em>
           </h2>
           <p className="lede">
             With no star to warm it, the planet survives on artificial light. Every Lantern holds back the ice on
@@ -64,7 +64,7 @@ export default function Network({ lit17 }: { lit17: boolean }) {
             <div className="board-top">
               <span className="eyebrow">Orbital status board</span>
               <span className="eyebrow">
-                <b>{lit}</b>/24 lit
+                <b>{lit}</b>/24 healthy
               </span>
             </div>
             <div className="cells">
@@ -126,7 +126,7 @@ export default function Network({ lit17 }: { lit17: boolean }) {
               </div>
               <div>
                 <span>Surface below</span>
-                <strong>{current.status === "offline" ? "Freezing" : current.status === "damaged" ? "Cooling" : "Stable"}</strong>
+                <strong>{current.status === "offline" ? "Dimming" : current.status === "damaged" ? "Cooling" : "Stable"}</strong>
               </div>
               <div>
                 <span>Action</span>

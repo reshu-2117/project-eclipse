@@ -3,15 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const LINES: { text: string; cls?: string }[] = [
-  { text: "> INCOMING // CONTROL → FIELD ENGINEER", cls: "t-sys" },
+  { text: "> INCOMING // NETWORK OPS → FIELD ENGINEER", cls: "t-sys" },
   { text: "> Signal locked. Stand by." , cls: "t-sys" },
   { text: "" },
-  { text: "Lantern 17 has gone dark." },
-  { text: "Ice debris struck its collector array." },
-  { text: "Below it, the surface is already freezing." },
+  { text: "Lantern 17 is failing." },
+  { text: "Its light is down to 61% and still falling." },
+  { text: "Three telemetry channels have gone silent." },
+  { text: "A huge piece of ice is on its way." },
   { text: "" },
-  { text: "You are the only engineer close enough." },
-  { text: "Design the mission. Bring the light back.", cls: "t-warm" },
+  { text: "You are one of 300 crews out tonight." },
+  { text: "Find out what's wrong. Bring the data home.", cls: "t-warm" },
 ];
 
 const STARTS = LINES.map((_, i) => LINES.slice(0, i).reduce((n, l) => n + l.text.length + 1, 0));

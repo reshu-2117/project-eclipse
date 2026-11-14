@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { EclipseMark } from "./Icons";
 
 function pad(n: number) {
@@ -17,7 +18,7 @@ export default function Hud({ lit17, ready }: { lit17: boolean; ready: boolean }
   }, []);
 
   const clock = `T+ ${pad(Math.floor(secs / 3600))}:${pad(Math.floor((secs % 3600) / 60))}:${pad(secs % 60)}`;
-  const status = lit17 ? "RELIT" : ready ? "REPAIR READY" : "OFFLINE";
+  const status = lit17 ? "RELIT" : ready ? "REPAIR READY" : "DEGRADED";
   const dotCls = lit17 ? "dot dot-amber" : ready ? "dot dot-ice" : "dot dot-ember";
 
   return (
@@ -37,10 +38,10 @@ export default function Hud({ lit17, ready }: { lit17: boolean; ready: boolean }
             LANTERN 17 · <strong>{status}</strong>
           </span>
           <span className="t-hide-md">
-            NETWORK <strong>{lit17 ? "24" : "23"}/24 LIT</strong>
+            L-17 OUTPUT <strong>{lit17 ? "100" : "61"}%</strong>
           </span>
           <span className="t-hide-md">
-            SURFACE <strong>{lit17 ? "WARMING" : "FREEZING"}</strong>
+            ICE IMPACT <strong>{lit17 ? "AVERTED" : "T−36 H"}</strong>
           </span>
         </div>
 
@@ -50,6 +51,7 @@ export default function Hud({ lit17, ready }: { lit17: boolean; ready: boolean }
           <a href="#orbit">Orbit</a>
           <a href="#briefing">Briefing</a>
           <a href="#mission">Mission</a>
+          <Link href="/lab">Lab</Link>
           <a href="#crew">Crew</a>
         </nav>
       </div>
