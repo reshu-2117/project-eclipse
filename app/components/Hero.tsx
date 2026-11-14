@@ -429,6 +429,9 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
             <Link className="btn btn-lantern" href="/mission">
               Begin mission <span aria-hidden="true">↗</span>
             </Link>
+            <Link className="btn btn-ghost" href="/station?demo=1">
+              Try the Station Mission <span aria-hidden="true">↗</span>
+            </Link>
             <a className="btn btn-ghost" href="#world">
               Explore the planet <span aria-hidden="true">↓</span>
             </a>

@@ -36,6 +36,23 @@ export default function BeginMission() {
             Enter the Wick <span aria-hidden="true">↗</span>
           </Link>
         </div>
+
+        <div className="section-head reveal" style={{ marginTop: 72 }}>
+          <p className="eyebrow">
+            Mission 002 <b>{"//"}</b> Lantern 17
+          </p>
+          <h2 className="display">
+            Find out what <em>really</em> happened.
+          </h2>
+          <p className="lede">
+            After the flight, you dock at Lantern 17. In the Station Mission you look around, search six zones for clues, fix what is broken, prove the real cause, warn the other Lanterns, and make one big decision. It is written in plain words, a coach tells you what to do next, and it takes about five minutes.
+          </p>
+          <div style={{ marginTop: 8 }}>
+            <Link className="btn btn-lantern" href="/station?demo=1">
+              Try the Station Mission <span aria-hidden="true">↗</span>
+            </Link>
+          </div>
+        </div>
       </div>
     </section>
   );
