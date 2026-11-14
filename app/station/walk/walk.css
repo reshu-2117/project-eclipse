@@ -1,0 +1,429 @@
+/* ───────────── the spacewalk (sw-) ─────────────
+   First person, through a helmet: a soft visor edge, the suit's readouts at the corners,
+   the work in front of you. */
+
+.sw {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  background: #000;
+  color: var(--frost);
+  touch-action: none;
+}
+.sw-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+}
+.sw-canvas:active {
+  cursor: grabbing;
+}
+.sw-error {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 24px;
+}
+/* the helmet: a curved visor edge and a faint reflection */
+.sw-visor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(140% 120% at 50% 45%, transparent 62%, rgba(8, 12, 18, 0.55) 80%, rgba(2, 3, 6, 0.95) 100%),
+    linear-gradient(115deg, transparent 30%, rgba(160, 200, 255, 0.035) 42%, transparent 48%);
+}
+.sw.thermal .sw-visor {
+  background:
+    radial-gradient(140% 120% at 50% 45%, transparent 62%, rgba(30, 6, 40, 0.6) 82%, rgba(5, 2, 8, 0.95) 100%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 3px);
+}
+
+.sw-eyebrow {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.sw-eyebrow.red {
+  color: #ff8a73;
+}
+.sw-panel {
+  position: absolute;
+  z-index: 2;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(220, 230, 240, 0.12);
+  background: linear-gradient(180deg, rgba(10, 16, 26, 0.74), rgba(5, 8, 13, 0.64));
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  touch-action: auto;
+}
+
+/* suit, top right */
+.sw-suit {
+  top: 74px;
+  right: 18px;
+  width: 250px;
+  display: grid;
+  gap: 8px;
+}
+.sw-suit dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  margin: 0;
+}
+.sw-suit dt {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.sw-suit dd {
+  margin: 2px 0 0;
+  font-family: var(--mono);
+  font-size: 14px;
+}
+.sw .red {
+  color: #ff6a55;
+}
+.sw .amber {
+  color: var(--amber);
+}
+.sw-alarm {
+  margin: 0;
+  font-size: 12.5px;
+  color: #ff8a73;
+}
+.sw-modes {
+  display: flex;
+  gap: 6px;
+}
+.sw-modes button,
+.sw-zone,
+.sw-guide,
+.sw-act {
+  font: inherit;
+  color: var(--frost);
+  border: 1px solid rgba(220, 230, 240, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 9px;
+  cursor: pointer;
+}
+.sw-modes button {
+  flex: 1;
+  padding: 7px 8px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.sw-modes button[aria-pressed="true"] {
+  border-color: rgba(255, 181, 71, 0.6);
+  color: var(--amber);
+}
+.sw-modes button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* zones, left */
+.sw-zones {
+  top: 74px;
+  left: 18px;
+  width: 220px;
+  display: grid;
+  gap: 5px;
+}
+.sw-zone {
+  display: grid;
+  grid-template-columns: 22px 1fr 10px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 13.5px;
+}
+.sw-zone .n {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--dim);
+}
+.sw-zone i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(220, 230, 240, 0.25);
+}
+.sw-zone.unknown {
+  color: var(--dim);
+}
+.sw-zone.worked i {
+  background: var(--ice);
+}
+.sw-zone.broken i {
+  background: #ff5a46;
+  box-shadow: 0 0 8px #ff5a46;
+}
+.sw-zone.fixed i {
+  background: #7dffb0;
+}
+.sw-zone[aria-current="location"] {
+  border-color: rgba(255, 181, 71, 0.6);
+  background: rgba(255, 181, 71, 0.08);
+}
+.sw-guide {
+  margin-top: 4px;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 12px;
+  color: var(--amber);
+}
+
+.sw-coach {
+  position: absolute;
+  z-index: 2;
+  top: 74px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(520px, calc(100% - 560px));
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  background: rgba(5, 8, 13, 0.7);
+  border: 1px solid rgba(255, 181, 71, 0.25);
+  text-align: center;
+}
+.sw-coach b {
+  color: var(--amber);
+  font-weight: 600;
+}
+
+/* the work, bottom */
+.sw-work {
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  width: min(760px, calc(100% - 32px));
+  max-height: 46vh;
+  overflow-y: auto;
+  display: grid;
+  gap: 8px;
+}
+.sw-work h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.05;
+}
+.sw-see {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--body);
+}
+.sw-hazard {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--dim);
+}
+.sw-hazard b {
+  color: var(--amber);
+  font-weight: 600;
+}
+.sw-methods {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.sw-act {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  padding: 9px 9px 8px;
+  text-align: left;
+  min-height: 92px;
+}
+.sw-act b {
+  font-size: 13px;
+  font-weight: 600;
+}
+.sw-act small {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--dim);
+}
+.sw-act i {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--amber);
+  margin-top: auto;
+}
+.sw-act:hover:not([aria-disabled]) {
+  border-color: rgba(255, 181, 71, 0.55);
+  background: rgba(255, 181, 71, 0.07);
+}
+.sw-act.done {
+  opacity: 0.6;
+}
+.sw-act.done i {
+  color: #7dffb0;
+}
+.sw-act.locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.sw-fix {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 90, 70, 0.4);
+  background: rgba(60, 8, 4, 0.35);
+}
+.sw-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sw-act.fix {
+  min-height: 0;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  border-color: rgba(255, 90, 70, 0.5);
+}
+.sw-fine {
+  margin: 0;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+/* pins on finds */
+.sw-pin {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+.sw-pin i {
+  display: block;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  box-shadow: 0 0 14px currentColor;
+}
+.sw-pin span {
+  position: absolute;
+  left: 34px;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-shadow: 0 1px 4px #000;
+}
+.sw-pin.clue {
+  color: var(--amber);
+}
+.sw-pin.hazard {
+  color: #ff6a55;
+}
+.sw-pin.fixed {
+  color: #7dffb0;
+}
+
+@media (max-width: 1000px) {
+  .sw-coach {
+    top: auto;
+    bottom: calc(46vh + 26px);
+    max-width: calc(100% - 32px);
+  }
+  .sw-methods {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .sw-zones {
+    top: 66px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    grid-template-columns: repeat(3, 1fr);
+    padding: 8px;
+    gap: 4px;
+  }
+  .sw-zones .sw-eyebrow {
+    display: none;
+  }
+  .sw-zone {
+    grid-template-columns: 1fr 8px;
+    padding: 6px 7px;
+    font-size: 11.5px;
+  }
+  .sw-zone .n {
+    display: none;
+  }
+  .sw-guide {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 6px 8px;
+  }
+  .sw-suit {
+    top: auto;
+    bottom: calc(48vh + 14px);
+    right: 8px;
+    width: 170px;
+    padding: 8px 10px;
+  }
+  .sw-suit dl {
+    gap: 4px 8px;
+  }
+  .sw-suit dd {
+    font-size: 12px;
+  }
+  .sw-coach {
+    display: none;
+  }
+  .sw-work {
+    bottom: 8px;
+    width: calc(100% - 16px);
+    max-height: 48vh;
+    padding: 10px 12px;
+  }
+  .sw-work h2 {
+    font-size: 24px;
+  }
+  .sw-see {
+    font-size: 13.5px;
+  }
+  .sw-methods {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .sw-act {
+    min-height: 0;
+  }
+}
+
+.sw-work .sq-latest {
+  margin: 0;
+  padding: 10px 12px;
+}
+.sw-work .sq-latest p {
+  font-size: 13px;
+  line-height: 1.5;
+}

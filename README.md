@@ -59,9 +59,9 @@ Design decisions made in Chunk 0 (where the handbook left a gap):
 4. **You send one packet, whenever you choose.** You can transmit as soon as you're at the station. Sending early helps the network turn sooner, but the network judges the evidence you had at that moment.
 5. **City reserves drain by the light they're missing,** not only when Lantern 17 is fully dark. Fixing the drift slows the drain. Beaming during the Eclipse costs the cities nothing.
 
-Tests: `npm test` (59 tests). They re-derive every handbook number, check the rules, and play scripted crews to prove that all 8 endings can be reached.
+Tests: `npm test` (91 tests). They re-derive every handbook number, check the rules, play scripted crews to prove that all 8 endings can be reached, fly every route through the real flight physics with a robot pilot, and check the piloted engine actions.
 
-**The mission:** `/mission` is playable end to end: build a ship at the Wick, choose a route, fly three event cards, then continue on the Station Mission page (`/station`): look around, investigate, fix problems, prove it, tell the world, make the big decision, hold or leave, and read the debrief. The Station Mission is written in plain words for teenagers, with a coach that tells you the next move.
+**The mission:** `/mission` is playable end to end: build a ship at the Wick, choose a route, **fly it yourself** on the flight deck (real burns, an ice fragment, three event cards, docking on thrusters), then continue on the Station Mission page (`/station`): look around, investigate, fix problems, prove it, tell the world, make the big decision, hold or leave, and read the debrief. The Station Mission is written in plain words for teenagers, with a coach that tells you the next move.
 
 **Mission Lab:** `/lab` is the proof page. It re-derives ten handbook numbers with the engine, checks every ship against every route, and lets you watch nine scripted crews fly whole missions to all eight endings. The Lab hero and the game's flight map use the same Lantern network and planet as the home page, and show it in the phase the mission is in: failing, in the Eclipse, dark, or restored.
 
@@ -79,6 +79,23 @@ The first player-facing stage. Players build a ship in four bays (hull, parts, s
 - **Runs are saved** in `sessionStorage` as a seed plus the list of actions, so a refresh offers "Continue your mission".
 - **Sound and voice** have separate switches (`app/mission/audio.ts`); both remembered. Sound is made in the browser; the voice lines are recorded files in `public/audio`.
 - Respects reduced motion; works with the keyboard alone and at phone width.
+
+## The flight deck (also at /mission)
+
+You fly from the Wick (300 km) to Lantern 17 (1,000 km) yourself, under real gravity. Start it from the route screen, or with "Jump to the flight" on the `/mission` start screen.
+
+- **Physics** (`lib/flight/`, pure TypeScript, tested): coasting is exact (universal-variable Kepler propagation), burns are integrated with RK4 under gravity, mass falls with the rocket equation, and the ship's attitude slews at a real thruster rate, so burning before you're pointed right wastes fuel. Earth-size planet, as the engine uses.
+- **The flight computer** (`lib/flight/plan.ts`) builds each route card as real burns. They come out at the handbook's numbers, and tests check it: Hohmann 376 m/s in 49 min, catch-up 27 or about 136 m/s, a 10° plane change 1,282 m/s, and the fast intercept angle solved so it costs exactly 1,252 m/s in 22 minutes. It locks each burn as a fixed vector, cuts the engine on target (Guide on), corrects a sloppy burn with the next one (a 1-D phasing solve for multi-orbit legs, Levenberg–Marquardt shooting otherwise), and flies a terminal transfer if you arrive off the mark. Miss a burn badly and it re-plans a direct intercept (Lambert).
+- **You fly it** (`app/mission/flight/FlightDeck.tsx`): hold BURN (Space) when the countdown reaches zero; aim by Computer, prograde, retrograde, radial and normal; time-warp up to 1000×, which stops itself before burns, cards and the ice. An orbit scope shows your orbit (amber) and the planned one (cyan) from above, with heights exaggerated; the Map view shows the real orbits.
+- **Ice**: a fragment crosses your path with a collision warning modelled on NASA's ISS practice (time of closest approach, predicted miss, chance of a hit against NASA's 1-in-10,000 line, a ~0.6 m/s dodge). The tracking error shrinks as it gets closer; ignore it and it can hit. Near the station, slow ice haze drifts through the docking corridor and clacks off the hull; damage depends on your shield.
+- **Docking**: the last kilometre on 6-direction thrusters (Draco-class, 400 N), along the velocity vector as crews approach the ISS. Contact under 0.3 m/s and 0.5 m off centre is a soft capture; faster is a hard dock or a bounce. No lidar means the numbers are estimates "by eye".
+- **Engine link**: `route { piloted: true }`, then `flight` reports (time flown, hull damage) before each card and `dock` at contact with the Δv spent beyond the route card (or saved, which goes back in the tank). The engine checks and clamps everything, so a replay of the saved actions gives the same mission. A refresh mid-flight resumes from a snapshot.
+- **Look**: Lantern 17 and the ship are built in code (`app/three/`): dock hub with a soft-capture ring, approach lights and an alignment cross; the spine truss with two gyro wheels; radiator fins with coolant loops and the ammonia leak venting like snow; the sensor mast; the Kiln; 18 gold hexagonal mirror segments (JWST has 18), segment 7 cracked. A cinematic pipeline (`app/three/cinema.ts`): ACES tone mapping, bloom, film grain, vignette, lens fringing, letterbox shots, and a governor that lowers resolution if the frame rate drops. The planet has no sun: it is lit only by the Lanterns' pools of light.
+- `/mission?fly=approach` (with "Jump to the flight") starts at the approach point, for reviewers.
+
+## Walking Lantern 17 (/station)
+
+After docking, the Station Mission opens outside, in first person (`app/station/walk/`): glide along the handrails to each zone, look with your own eyes or the thermal visor (if your ship carries the thermal camera), and inspect or repair right there. Every button is the engine's own action with its real hours and refusal reasons, finds are pinned in 3D, the dosimeter clicks faster near the Kiln, and the suit shows air, dose and the clocks. The step-by-step station guide is one tap away for the proof, the report and the big decision.
 
 ## Route and journey (also at /mission)
 

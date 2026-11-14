@@ -260,8 +260,12 @@ export class FlightSim {
     return l17At(this.sc, this.t);
   }
 
+  /** The flight has been reported to the engine (docked): the engine's own Δv is the tank now. */
+  settled = false;
+
   /** Δv left in the tank, m/s. */
   get available(): number {
+    if (this.settled) return Math.max(0, this.engineDvLeft);
     return Math.max(0, this.engineDvLeft + this.spec.routeDv - this.spent);
   }
 
@@ -856,7 +860,7 @@ export class FlightSim {
 
   /** Any cards still to come happen now: you can't dock with events outstanding. */
   private cardsNow() {
-    for (let i = this.cardIdx; i < this.cardTimes.length; i++) this.cardTimes[i] = Math.min(this.cardTimes[i], this.t + 4 + (i - this.cardIdx) * 3);
+    for (let i = this.cardIdx; i < this.cardTimes.length; i++) this.cardTimes[i] = this.t + 4 + (i - this.cardIdx) * 3;
   }
 
   private proximity(ev: FlightEvent[], h: number) {

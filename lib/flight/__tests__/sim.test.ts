@@ -133,3 +133,30 @@ describe("the live flight", () => {
     expect(sim.spec.routeDv).toBeGreaterThan(0);
   });
 });
+
+describe("cards and docking", () => {
+  it("cards still to come happen at the approach, so you can always dock", () => {
+    const game = launched("quick");
+    const sim = new FlightSim(game);
+    sim.fastForwardToApproach();
+    let cards = 0;
+    for (let i = 0; i < 2000 && cards < sim.cardTimes.length; i++) {
+      for (const e of sim.step(0.1)) if (e.type === "card") cards++;
+      if (sim.cardPending) sim.cardPending = false;
+    }
+    expect(cards).toBe(game.deck.length - game.card);
+  });
+
+  it("a snapshot resumes the same flight", () => {
+    const game = launched("safe");
+    const a = new FlightSim(game);
+    a.setWarp(100);
+    for (let i = 0; i < 50; i++) a.step(0.1);
+    const snap = JSON.parse(JSON.stringify(a.snapshot(game.card)));
+    const b = new FlightSim(game);
+    expect(b.restore(snap, game.card)).toBe(true);
+    expect(b.t).toBeCloseTo(a.t, 6);
+    expect(b.ship.r[0]).toBeCloseTo(a.ship.r[0], 3);
+    expect(b.restore(snap, game.card + 1)).toBe(false);
+  });
+});

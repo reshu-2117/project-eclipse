@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import "./quest.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -54,6 +55,9 @@ function saveRun(run: Run | null) {
   window.dispatchEvent(new Event("eclipse-store"));
 }
 
+// the spacewalk is WebGL: browser only, loaded when you go outside
+const StationWalk = dynamic(() => import("./walk/StationWalk"), { ssr: false });
+
 export default function StationQuest() {
   const router = useRouter();
   const [sound] = useState(() => new Sound());
@@ -80,6 +84,8 @@ export default function StationQuest() {
   const game: GameState | null = useMemo(() => (run ? replay(run.seed, run.actions).state : null), [run]);
 
   const [intro, setIntro] = useState(true);
+  // outside, in 3D (the default), or the station guide with its steps
+  const [walk, setWalk] = useState(true);
   const [pick, setPick] = useState<StepId | null>(null);
   const [from, setFrom] = useState<number | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
@@ -288,6 +294,8 @@ export default function StationQuest() {
           <FinalHours c={ctx} />
         ) : intro && !g.surveyed ? (
           <Welcome onBegin={() => { setIntro(false); say(STATION_ENTER); }} />
+        ) : walk ? (
+          <StationWalk c={ctx} coach={co} sound={sound} onGuide={() => setWalk(false)} />
         ) : (
           <>
             <section className="sq-coach" aria-label="Your next move">
@@ -299,6 +307,9 @@ export default function StationQuest() {
                   Take me to the suggested step
                 </button>
               )}
+              <button type="button" className="sq-btn" onClick={() => setWalk(true)}>
+                Go outside: walk the station in 3D <span aria-hidden="true">↗</span>
+              </button>
             </section>
 
             <div className="sq-layout">

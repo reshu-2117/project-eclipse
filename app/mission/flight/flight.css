@@ -843,10 +843,21 @@
 
 @media (max-width: 620px) {
   .fd-status {
-    top: 72px;
-    left: 10px;
+    top: 124px;
+    left: 8px;
+    width: calc(50% - 12px);
     min-width: 0;
     padding: 8px 10px;
+  }
+  .fd-status .fd-eyebrow {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+  }
+  .fd-orbit {
+    grid-template-columns: repeat(2, auto);
+  }
+  .fd-orbit div:nth-child(3) {
+    display: none;
   }
   .fd-clock {
     font-size: 18px;
@@ -859,16 +870,26 @@
     font-size: 11px;
   }
   .fd-scope {
-    width: 104px;
-    height: 104px;
+    width: 96px;
+    height: 96px;
     margin-top: 4px;
   }
   .fd-ship {
-    top: 72px;
-    right: 10px;
+    top: 124px;
+    right: 8px;
+    width: calc(50% - 12px);
     min-width: 0;
     padding: 8px 10px;
     gap: 6px;
+  }
+  .fd-tank {
+    grid-template-columns: 1fr auto;
+  }
+  .fd-tank span {
+    grid-column: 1 / -1;
+  }
+  .fd-tank small {
+    display: none;
   }
   .fd-tank b {
     font-size: 18px;
@@ -878,18 +899,20 @@
   }
   .fd-views {
     top: auto;
-    bottom: 222px;
-    right: 10px;
+    bottom: auto;
+    top: 46%;
+    right: 8px;
     transform: none;
+    flex-direction: column;
   }
   .fd-views button {
     padding: 7px 9px;
   }
   .fd-aim {
     top: auto;
-    bottom: 268px;
-    left: 10px;
-    right: 10px;
+    bottom: 262px;
+    left: 8px;
+    right: 8px;
   }
   .fd-aim-grid button span {
     display: none;
@@ -920,8 +943,8 @@
     font-size: 16px;
   }
   .fd-alert {
-    top: 190px;
-    width: calc(100% - 20px);
+    top: 124px;
+    width: calc(100% - 16px);
     padding: 10px 12px;
   }
   .fd-alert dl {
@@ -969,6 +992,9 @@
 }
 @media (max-width: 620px) {
   .fd ~ .ms-caption {
-    top: 34%;
+    top: 124px;
+  }
+  .fd ~ .ms-caption p {
+    font-size: 13px;
   }
 }

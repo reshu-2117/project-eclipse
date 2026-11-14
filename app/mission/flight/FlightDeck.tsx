@@ -342,6 +342,7 @@ export default function FlightDeck({
               notify(reason, "warn");
               break;
             }
+            sim.settled = true;
             onHold(true);
             setDockInfo({ speed: sim.contact?.speed ?? 0, extra: sim.extraDv() });
             sound.engine(0);
@@ -1132,8 +1133,8 @@ function DockSummary({ game, info }: { game: GameState; info: { speed: number; e
         <span>m/s at contact</span>
       </li>
       <li>
-        <b>{extra >= 0 ? `+${r0(extra)}` : `−${r0(-extra)}`}</b>
-        <span>m/s vs the route card</span>
+        <b>{r0(Math.abs(extra))}</b>
+        <span>{extra >= 0 ? "m/s over the route card" : "m/s saved on the route card"}</span>
       </li>
       <li>
         <b>{r0(dvLeft(game))}</b>

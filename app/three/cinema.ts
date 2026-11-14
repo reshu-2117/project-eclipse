@@ -26,6 +26,7 @@ const GradeShader = {
     uFlashColor: { value: new THREE.Color(1, 0.35, 0.2) },
     uLift: { value: new THREE.Color(0.006, 0.012, 0.02) },
     uDesat: { value: 0 },
+    uThermal: { value: 0 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -33,7 +34,20 @@ const GradeShader = {
   `,
   fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse;
-    uniform float uTime, uVignette, uGrain, uFringe, uBars, uAspect, uFlash, uDesat;
+    uniform float uTime, uVignette, uGrain, uFringe, uBars, uAspect, uFlash, uDesat, uThermal;
+    // an "ironbow" thermal palette: cold black-blue, warm purple and red, hot orange to white
+    vec3 ironbow(float t) {
+      t = clamp(t, 0.0, 1.0);
+      vec3 a = vec3(0.02, 0.02, 0.10);
+      vec3 b = vec3(0.35, 0.05, 0.55);
+      vec3 c = vec3(0.90, 0.20, 0.15);
+      vec3 d = vec3(1.00, 0.65, 0.05);
+      vec3 e = vec3(1.00, 1.00, 0.85);
+      if (t < 0.25) return mix(a, b, t / 0.25);
+      if (t < 0.5) return mix(b, c, (t - 0.25) / 0.25);
+      if (t < 0.75) return mix(c, d, (t - 0.5) / 0.25);
+      return mix(d, e, (t - 0.75) / 0.25);
+    }
     uniform vec3 uFlashColor, uLift;
     varying vec2 vUv;
     float hash(vec2 p) { p = fract(p * vec2(443.897, 441.423)); p += dot(p, p.yx + 19.19); return fract((p.x + p.y) * p.x); }
@@ -53,6 +67,7 @@ const GradeShader = {
       col = mix(col, col * vec3(1.04, 1.0, 0.94), smoothstep(0.45, 1.0, l));
       col = mix(col, col * vec3(0.93, 1.0, 1.08), 1.0 - smoothstep(0.0, 0.35, l));
       col = mix(col, vec3(l), uDesat);
+      col = mix(col, ironbow(pow(l, 0.55) * 1.15), uThermal);
       // vignette
       col *= 1.0 - uVignette * smoothstep(0.15, 0.95, r2);
       // grain, stronger in the darks

@@ -19,9 +19,9 @@ import type { EngineId, HullId, ShieldId } from "@/lib/game";
 
 export type View = "chase" | "map" | "cockpit";
 
-const N_LANTERNS = 24;
+export const N_LANTERNS = 24;
 
-const PLANET_VERT = /* glsl */ `
+export const PLANET_VERT = /* glsl */ `
   #include <common>
   #include <logdepthbuf_pars_vertex>
   varying vec3 vObj;
@@ -35,7 +35,7 @@ const PLANET_VERT = /* glsl */ `
   }
 `;
 
-const PLANET_FRAG = /* glsl */ `
+export const PLANET_FRAG = /* glsl */ `
   #include <logdepthbuf_pars_fragment>
   #define N ${N_LANTERNS}
   uniform sampler2D uTex;
@@ -81,7 +81,7 @@ const PLANET_FRAG = /* glsl */ `
   }
 `;
 
-const ATMO_FRAG = /* glsl */ `
+export const ATMO_FRAG = /* glsl */ `
   #include <logdepthbuf_pars_fragment>
   uniform float uDim;
   varying vec3 vObj; varying vec3 vWorld;
@@ -420,7 +420,8 @@ export class FlightScene {
     this.ship.group.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(att, shipUp, shipZ));
     const rcsLocal = new THREE.Vector3(sim.rcs[0], sim.rcs[1], sim.rcs[2]);
     this.ship.update(this.time, sim.thrusting ? 1 : 0, sim.rcsActive ? rcsLocal : new THREE.Vector3(), sim.aligning ? 1 : 0);
-    const floods = sim.mode === "approach" || sim.mode === "docked" || l17d < 3000 ? 1 : 0;
+    // floodlights on for the approach; dimmed once docked so the station isn't burned out
+    const floods = sim.mode === "docked" ? 0.12 : sim.mode === "approach" || l17d < 3000 ? 0.45 : 0;
     this.ship.floods.forEach((s) => (s.intensity = floods * 9000));
 
     // lines, recomputed a few times a second (cheap enough, exact)
@@ -570,15 +571,15 @@ export class FlightScene {
         cam.up.copy(up);
         cam.lookAt(0, 0, 0);
       } else {
-        // docked: a slow orbit round the joined ship and station
-        const a = this.shot.t * 0.06;
+        // docked: a slow orbit above the joined ship and station, the planet below
+        const a = 0.9 + this.shot.t * 0.045;
         const vbar = v3(f.vbar);
         const rbar = v3(f.rbar);
         const hbar = v3(f.hbar);
-        const c = l17rel.clone().add(vbar.clone().multiplyScalar(-20));
-        cam.position.copy(c.clone().add(vbar.clone().multiplyScalar(-60 * Math.cos(a))).add(hbar.clone().multiplyScalar(60 * Math.sin(a))).add(rbar.clone().multiplyScalar(-14)));
+        const c = l17rel.clone().add(vbar.clone().multiplyScalar(-30));
+        cam.position.copy(c.clone().add(vbar.clone().multiplyScalar(-46 * Math.cos(a))).add(hbar.clone().multiplyScalar(46 * Math.sin(a))).add(rbar.clone().multiplyScalar(16)));
         cam.up.copy(rbar);
-        cam.lookAt(c);
+        cam.lookAt(c.clone().add(rbar.clone().multiplyScalar(-4)));
       }
       cam.position.x += jitter();
       cam.position.y += jitter();
