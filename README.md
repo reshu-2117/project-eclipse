@@ -40,3 +40,25 @@ The planet itself is a WebGL shader (`app/components/heroPlanet.ts`) lit only by
 
 Code: `app/components/OrbitalSection.tsx` (UI), `app/components/orbit/` (`sim.ts` model, `scene.ts` Three.js scene, `field.worker.ts` and `loadField.ts` for off-thread generation).
 
+
+## Game engine (Chunk 0)
+
+The whole mission runs on a pure TypeScript engine in `lib/game/`, separate from any screen. It follows the Game Systems Handbook v2.
+
+- **One rule for every click:** `step(state, action)` checks the phase and the resources, returns a new state plus a readable ledger line, or rejects with a reason and changes nothing.
+- **Replayable:** a run is a seed plus a list of actions (`replay(seed, actions)`). The same inputs always give the same mission. The ledger, "Replay with one change" and the ghost run all come from this.
+- **Data as tables:** hulls and parts (`data/ship.ts`), routes (`data/routes.ts`), event cards E1–E8 (`data/events.ts`), Lantern 17's zones, clues, explanations and settlements (`data/station.ts`), endings (`data/endings.ts`) and "In real life" cards (`data/realLife.ts`). Every row is tagged `real`, `game` or `fiction`.
+- **Real physics** (`physics.ts`): the ideal rocket equation, Hohmann transfers, plane changes, comms time, the ablation test push, and the ice deflection integrated minute by minute.
+- **Balance numbers** live in `constants.ts`. Change one there and the whole game follows.
+
+Design decisions made in Chunk 0 (where the handbook left a gap):
+
+1. **Fast transfers are direct intercepts.** In the handbook, the fast route still waited for catch-up orbits, so it cost more *and* arrived later than the quick catch-up. Now every route buys time with fuel: safe 12.6 h, quick 5.6 h, fast out 3.4 h, skip the window 2.6 h.
+2. **The network can deflect the ice.** A believed Core or Full packet brings 3 or 5 more Lanterns onto the ice an hour after it arrives. Alone, one Lantern needs about 21 h of beaming, so only a fast, lean crew can save the station by itself. A crew that proves it and sends it early can save it with help. A crew on the safe route arrives too late either way.
+3. **Discovery and survival are scored separately.** The headline ending is about the proof: was it sent, in time, and believed? Station, cities and crew are shown alongside it. "Saved, but stranded" from the Round 2 deck is back as the eighth ending.
+4. **You send one packet, whenever you choose.** You can transmit as soon as you're at the station. Sending early helps the network turn sooner, but the network judges the evidence you had at that moment.
+5. **City reserves drain by the light they're missing,** not only when Lantern 17 is fully dark. Fixing the drift slows the drain. Beaming during the Eclipse costs the cities nothing.
+
+Tests: `npm test` (52 tests). They re-derive every handbook number, check the rules, and play scripted crews to prove that all 8 endings can be reached.
+
+**Mission Lab:** `/lab` runs the engine live, with handbook-vs-engine checks, a working hangar calculator, and nine scripted crews you can watch play full missions.
