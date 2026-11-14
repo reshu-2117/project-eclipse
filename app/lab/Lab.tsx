@@ -2,7 +2,7 @@
 
 import "./lab.css";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ENDING_ORDER, EVENT_IDS, ROUTE_ORDER, STRATEGIES } from "@/lib/game";
 import LanternNetwork, { type L17State } from "../components/LanternNetwork";
 import { useReducedMotion } from "../mission/Opening";
@@ -10,6 +10,7 @@ import { Crews, Endings } from "./Crews";
 import Proofs, { useProofs } from "./Proofs";
 import Rules from "./Rules";
 import Ships from "./Ships";
+import { CountUp, useLabFx } from "./fx";
 import { TEST_COUNT } from "./facts";
 import { computeTally, type Tally } from "./tally";
 
@@ -34,6 +35,8 @@ export default function Lab() {
   const proofs = useProofs();
   const [tally, setTally] = useState<Tally | null>(null);
   const [active, setActive] = useState("proofs");
+  const root = useRef<HTMLDivElement>(null);
+  useLabFx(root);
   const [phase, setPhase] = useState(0);
   const ph = PHASES[phase];
 
@@ -58,14 +61,15 @@ export default function Lab() {
 
   const passed = proofs.filter((p) => p.ok).length;
   const stats = [
-    { big: `${passed} / ${proofs.length}`, small: "physics numbers re-derived and matching" },
-    { big: String(TEST_COUNT), small: "automatic tests, all passing" },
-    { big: String(STRATEGIES.length), small: "scripted crews that fly whole missions" },
-    { big: String(ENDING_ORDER.length), small: "endings, every one reachable" },
+    { big: <><CountUp to={passed} /> / {proofs.length}</>, small: "physics numbers re-derived and matching" },
+    { big: <CountUp to={TEST_COUNT} />, small: "automatic tests, all passing" },
+    { big: <CountUp to={STRATEGIES.length} />, small: "scripted crews that fly whole missions" },
+    { big: <CountUp to={ENDING_ORDER.length} />, small: "endings, every one reachable" },
   ];
 
   return (
-    <div className="lb">
+    <div className="lb" ref={root}>
+      <div className="lb-ambient" aria-hidden="true" />
       <a className="skip" href="#main">
         Skip to content
       </a>

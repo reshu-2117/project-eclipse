@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { HullThumb } from "../mission/Blueprint";
 import { PRESETS, ROUTES, ROUTE_ORDER, loadoutStats, routeTotals } from "@/lib/game";
 
 const r0 = (n: number) => Math.round(n).toLocaleString("en-US");
@@ -8,12 +9,13 @@ const r1 = (n: number) => (Math.round(n * 10) / 10).toLocaleString("en-US");
 
 type State = "ok" | "tight" | "short" | "dry";
 
-function cell(dv: number, id: (typeof ROUTE_ORDER)[number]): { state: State; text: string } {
+function cell(dv: number, id: (typeof ROUTE_ORDER)[number]): { state: State; text: string; pct: number } {
   const t = routeTotals(id);
-  if (dv < t.outDv) return { state: "dry", text: `dry, ${r0(t.outDv - dv)} short` };
-  if (dv < t.totalDv) return { state: "short", text: `no way home, ${r0(t.totalDv - dv)} short` };
-  if (dv < t.withMarginDv) return { state: "tight", text: "no margin" };
-  return { state: "ok", text: `+${r0(dv - t.withMarginDv)} spare` };
+  const pct = Math.max(0.04, Math.min(1, dv / t.withMarginDv));
+  if (dv < t.outDv) return { state: "dry", pct, text: `dry, ${r0(t.outDv - dv)} short` };
+  if (dv < t.totalDv) return { state: "short", pct, text: `no way home, ${r0(t.totalDv - dv)} short` };
+  if (dv < t.withMarginDv) return { state: "tight", pct, text: "no margin" };
+  return { state: "ok", pct, text: `+${r0(dv - t.withMarginDv)} spare` };
 }
 
 /** The three starter ships, side by side, against all five routes. */
@@ -23,7 +25,7 @@ export default function Ships() {
     <section className="lb-sec" id="ships" aria-labelledby="ships-title">
       <header className="lb-sec-head">
         <p className="eyebrow">
-          03 <b>{"//"}</b> Ships against routes
+          02 <b>{"//"}</b> Ships against routes
         </p>
         <h2 className="display" id="ships-title">
           No ship can do <em>everything.</em>
@@ -36,6 +38,9 @@ export default function Ships() {
       <div className="lb-ships">
         {ships.map(({ p, st }) => (
           <article key={p.id} className="lb-ship">
+            <div className="lb-hull">
+              <HullThumb id={p.loadout.hull} />
+            </div>
             <p className="eyebrow">{p.tagline}</p>
             <h3>{p.name}</h3>
             <p className="lb-ship-blurb">{p.blurb}</p>
@@ -93,6 +98,7 @@ export default function Ships() {
                   return (
                     <td key={id} className={c.state}>
                       {c.text}
+                      <i style={{ width: `${c.pct * 100}%` }} aria-hidden="true" />
                     </td>
                   );
                 })}

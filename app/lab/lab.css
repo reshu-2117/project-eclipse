@@ -805,3 +805,277 @@
     padding-inline: 14px;
   }
 }
+
+/* ============================================================
+   Polish: ambient light, motion, depth
+   ============================================================ */
+.lb {
+  position: relative;
+  --p: 0;
+  --mx: 70vw;
+  --my: 20vh;
+}
+/* the starfield, fixed behind everything, with a warm light that follows the pointer */
+.lb-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(520px 420px at var(--mx) var(--my), rgba(255, 181, 71, 0.085), transparent 70%),
+    url("/textures/starfield.jpg") center / cover;
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.55) 70%, rgba(0, 0, 0, 0.3) 100%);
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.55) 70%, rgba(0, 0, 0, 0.3) 100%);
+}
+.lb-nav,
+.lb main,
+.lb-foot {
+  position: relative;
+  z-index: 1;
+}
+.lb-nav {
+  position: sticky;
+  z-index: 40;
+}
+/* scroll progress */
+.lb-nav::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--amber), #ffd47a);
+  box-shadow: 0 0 12px rgba(255, 181, 71, 0.7);
+  transform-origin: left;
+  transform: scaleX(var(--p));
+}
+
+/* the headline's italic catches the light */
+.lb-hero .display em {
+  background: linear-gradient(100deg, #ffb547 0%, #ffe3a8 38%, #ffb547 62%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: lb-sheen 7s ease-in-out infinite alternate;
+}
+@keyframes lb-sheen {
+  to {
+    background-position: 100% 0;
+  }
+}
+
+/* a ghost section number behind each heading */
+.lb {
+  counter-reset: lbsec;
+}
+.lb-sec {
+  position: relative;
+  counter-increment: lbsec;
+}
+.lb-sec::before {
+  content: counter(lbsec, decimal-leading-zero);
+  position: absolute;
+  top: 70px;
+  right: 0;
+  font-family: var(--serif);
+  font-size: clamp(120px, 17vw, 260px);
+  line-height: 0.8;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(255, 181, 71, 0.16);
+  pointer-events: none;
+  user-select: none;
+}
+.lb-sec > * {
+  position: relative;
+}
+/* a thin Lantern line above every section */
+.lb-sec::after {
+  content: "";
+  position: absolute;
+  top: 56px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 181, 71, 0.5), rgba(255, 181, 71, 0.08) 40%, transparent);
+}
+
+/* rise into view */
+@media (prefers-reduced-motion: no-preference) {
+  .rv {
+    opacity: 0;
+    transform: translateY(26px);
+    transition:
+      opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d, 0ms),
+      transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d, 0ms);
+  }
+  .rv.in {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* stats: glow on hover, a hairline of light across the top */
+.lb-stats li {
+  position: relative;
+  overflow: hidden;
+  transition:
+    border-color 0.3s,
+    transform 0.3s,
+    box-shadow 0.3s;
+}
+.lb-stats li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 213, 140, 0.8), transparent);
+}
+.lb-stats li:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 181, 71, 0.5);
+  box-shadow: 0 18px 50px -20px rgba(255, 181, 71, 0.45);
+}
+.lb-stats b {
+  font-variant-numeric: tabular-nums;
+}
+
+/* cards lift and glow */
+.lb-proofs li,
+.lb-ship,
+.lb-endings li {
+  position: relative;
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
+    border-color 0.3s,
+    box-shadow 0.3s,
+    background 0.3s;
+}
+.lb-proofs li:hover,
+.lb-ship:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 181, 71, 0.35);
+  background: rgba(14, 22, 38, 0.82);
+  box-shadow: 0 22px 54px -26px rgba(255, 181, 71, 0.5);
+}
+.lb-proofs li:hover {
+  border-left-color: #8fe3b0;
+}
+.lb-endings li:hover {
+  transform: translateY(-4px);
+  background: rgba(14, 22, 38, 0.82);
+  box-shadow: 0 22px 54px -22px color-mix(in srgb, var(--tier) 60%, transparent);
+}
+.lb-endings li::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(260px 120px at 20% 0%, color-mix(in srgb, var(--tier) 16%, transparent), transparent 70%);
+  pointer-events: none;
+}
+.lb-proofs code {
+  transition: background 0.3s;
+}
+.lb-proofs li:hover code {
+  background: rgba(127, 212, 232, 0.14);
+}
+
+/* ship cards get their hull's outline */
+.lb-hull {
+  margin: -4px -4px 4px;
+  padding: 6px 0 10px;
+  border-bottom: 1px dashed rgba(127, 212, 232, 0.2);
+}
+.lb-hull .hg-thumb {
+  display: block;
+  width: 100%;
+  height: 78px;
+  padding: 0;
+  border: 0;
+  filter: drop-shadow(0 0 8px rgba(127, 212, 232, 0.35));
+}
+.lb-hull .bp-line {
+  stroke: var(--bp, #7fd4e8);
+  stroke-width: 2;
+  fill: none;
+}
+
+/* the fit matrix: a bar in each cell showing the ship's speed budget against what the route needs */
+.lb-matrix td {
+  position: relative;
+  overflow: hidden;
+  transition: background 0.25s;
+}
+.lb-matrix td > i {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: currentColor;
+  opacity: 0.55;
+  border-radius: 0 3px 0 0;
+}
+.lb-matrix tbody tr:hover td {
+  filter: brightness(1.25);
+}
+
+/* how often each ending happens across the sample runs */
+.lb-reach {
+  display: grid;
+  gap: 5px;
+}
+.lb-reach span {
+  display: block;
+  height: 5px;
+  border-radius: 5px;
+  background: rgba(220, 230, 240, 0.09);
+  overflow: hidden;
+}
+.lb-reach i {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--tier);
+  box-shadow: 0 0 10px var(--tier);
+}
+.lb-reach b {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: var(--tier);
+  text-transform: uppercase;
+}
+
+/* the crews: the picked one glows */
+.lb-crew {
+  transition:
+    transform 0.25s,
+    border-color 0.25s,
+    box-shadow 0.25s;
+}
+.lb-crew:hover {
+  transform: translateX(3px);
+}
+.lb-crew[aria-checked="true"] {
+  box-shadow: 0 0 0 1px rgba(255, 181, 71, 0.4), 0 18px 46px -24px rgba(255, 181, 71, 0.55);
+}
+
+/* the phase buttons breathe when active */
+.lb-phases button.on {
+  box-shadow: 0 0 18px -2px rgba(255, 181, 71, 0.5);
+}
+
+@media (max-width: 760px) {
+  .lb-sec::before {
+    font-size: 110px;
+    top: 74px;
+    opacity: 0.8;
+  }
+}

@@ -17,7 +17,7 @@ export function Crews({ tally }: { tally: Tally | null }) {
     <section className="lb-sec" id="crews" aria-labelledby="crews-title">
       <header className="lb-sec-head">
         <p className="eyebrow">
-          04 <b>{"//"}</b> Nine crews
+          03 <b>{"//"}</b> Nine crews
         </p>
         <h2 className="display" id="crews-title">
           Watch whole missions, <em>move by move.</em>
@@ -72,11 +72,13 @@ export function Crews({ tally }: { tally: Tally | null }) {
 
 /** Every ending, what triggers it, and which crews reach it. */
 export function Endings({ tally }: { tally: Tally | null }) {
+  // of every run in the sample (each crew on each deck), how many ended this way
+  const runs = tally ? STRATEGIES.reduce((n, c) => n + Object.values(tally[c.id] ?? {}).reduce((a, b) => a + b, 0), 0) : 0;
   return (
     <section className="lb-sec" id="endings" aria-labelledby="endings-title">
       <header className="lb-sec-head">
         <p className="eyebrow">
-          05 <b>{"//"}</b> Eight endings
+          04 <b>{"//"}</b> Eight endings
         </p>
         <h2 className="display" id="endings-title">
           Every ending is <em>reachable.</em>
@@ -89,12 +91,22 @@ export function Endings({ tally }: { tally: Tally | null }) {
         {ENDING_ORDER.map((id) => {
           const e = ENDINGS[id];
           const crews = tally ? STRATEGIES.filter((s) => (tally[s.id]?.[id] ?? 0) > 0) : [];
+          const hits = tally ? STRATEGIES.reduce((n, c) => n + (tally[c.id]?.[id] ?? 0), 0) : 0;
+          const share = runs ? hits / runs : 0;
           return (
             <li key={id} className={`tier-${e.tier}`}>
               <p className="eyebrow">{e.tierLabel}</p>
               <h3>{e.name}</h3>
               <q>{e.line}</q>
               <p className="lb-trigger">{e.trigger}</p>
+              {tally && (
+                <div className="lb-reach" title={`${hits} of ${runs} sample runs`}>
+                  <span aria-hidden="true">
+                    <i style={{ width: `${Math.max(share > 0 ? 3 : 0, share * 100)}%` }} />
+                  </span>
+                  <b>{share > 0 ? `${share < 0.01 ? "<1" : Math.round(share * 100)}% of runs` : "no runs"}</b>
+                </div>
+              )}
               <p className="lb-reached">
                 {tally ? (crews.length ? <>Reached by {crews.map((c) => c.name).join(", ")}</> : "Not reached by any crew in this sample") : "Checking…"}
               </p>

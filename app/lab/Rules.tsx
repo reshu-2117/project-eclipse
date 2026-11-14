@@ -20,7 +20,7 @@ export default function Rules() {
     <section className="lb-sec" id="rules" aria-labelledby="rules-title">
       <header className="lb-sec-head">
         <p className="eyebrow">
-          06 <b>{"//"}</b> The rules, in the open
+          05 <b>{"//"}</b> The rules, in the open
         </p>
         <h2 className="display" id="rules-title">
           It&apos;s all <em>just data.</em>
