@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { TEST_COUNT } from "../lab/facts";
 
 const STATS = [
   { big: "10 of 10", small: "handbook numbers re-derived from real physics" },
-  { big: "59", small: "automatic tests, all passing" },
+  { big: String(TEST_COUNT), small: "automatic tests, all passing" },
   { big: "8", small: "endings, every one reachable" },
 ];
 

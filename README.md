@@ -61,7 +61,7 @@ Design decisions made in Chunk 0 (where the handbook left a gap):
 
 Tests: `npm test` (59 tests). They re-derive every handbook number, check the rules, and play scripted crews to prove that all 8 endings can be reached.
 
-**Mission Lab:** `/lab` runs the engine live, with handbook-vs-engine checks, a working hangar calculator, and nine scripted crews you can watch play full missions.
+**Mission Lab:** `/lab` is the proof page. It re-derives ten handbook numbers with the engine, lets you play with the rocket equation, checks every ship against every route, and lets you watch nine scripted crews fly whole missions to all eight endings. The flight map in the game uses the same real planet as the home page.
 
 ## AI use
 

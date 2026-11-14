@@ -4,8 +4,7 @@ import Lab from "./Lab";
 export const metadata: Metadata = {
   title: "Mission Lab — Project Eclipse",
   description:
-    "The game engine behind Project Eclipse, running live: every handbook number re-derived, a working hangar calculator, and full missions played by scripted crews.",
-  robots: { index: false },
+    "The engine behind Project Eclipse, in the open: every physics number re-derived, an interactive rocket equation, ships against routes, and nine crews flying whole missions to eight endings.",
 };
 
 export default function LabPage() {

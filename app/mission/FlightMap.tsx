@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { RouteId } from "@/lib/game";
+import PlanetCanvas from "../components/PlanetCanvas";
+import type { PlanetLight } from "../components/heroPlanet";
 import { useReducedMotion } from "./Opening";
 
 /**
@@ -11,9 +13,9 @@ import { useReducedMotion } from "./Opening";
  */
 
 const C = { x: 320, y: 210 };
-const R_PLANET = 44;
-const R_WICK = 84;
-const R_L17 = 150;
+const R_PLANET = 56;
+const R_WICK = 98;
+const R_L17 = 168;
 const START = (150 * Math.PI) / 180; // where the Wick sits on its orbit
 const APEX = START + Math.PI; // where a Hohmann transfer meets Lantern 17's orbit
 
@@ -93,6 +95,16 @@ function buildPaths(): Record<RouteId, Path> {
   };
 }
 
+/**
+ * The warm lights that make the planet look like the home page's: Lanterns pooled around it. They are only for
+ * the planet's shading; the Wick and Lantern 17 are drawn by the map itself.
+ */
+const MAP_LIGHTS: PlanetLight[] = Array.from({ length: 12 }, (_, i) => {
+  const a = (i / 12) * Math.PI * 2 + 0.4;
+  // like the home page: Lanterns about 1.4 planet radii out, some in front of the planet and some behind its limb
+  return { x: Math.cos(a) * 1.38, y: Math.sin(a) * 1.38, z: 1.05 * Math.sin(a * 1.3 + 0.4), power: 0.16, color: [1.0, 0.58, 0.25] as const };
+});
+
 export default function FlightMap({
   route,
   hover,
@@ -110,6 +122,8 @@ export default function FlightMap({
 }) {
   const reduce = useReducedMotion();
   const paths = useMemo(() => buildPaths(), []);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState<{ left: number; top: number; size: number } | null>(null);
   const pathRef = useRef<SVGPathElement>(null);
   const [shown, setShown] = useState(0);
   const from = useRef(0);
@@ -157,10 +171,33 @@ export default function FlightMap({
     return () => cancelAnimationFrame(id);
   }, [shown, active]);
 
+  // keep the planet's canvas exactly under the planet the SVG draws, however the map is scaled
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const place = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      const k = Math.min(w / 640, h / 420);
+      const size = R_PLANET * 2 * 1.25 * k;
+      setBox({ left: (w - 640 * k) / 2 + C.x * k - size / 2, top: (h - 420 * k) / 2 + C.y * k - size / 2, size });
+    };
+    place();
+    const ro = new ResizeObserver(place);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const [wx, wy] = pt(R_WICK, START);
   const [lx, ly] = active ? paths[active].end : pt(R_L17, APEX);
 
   return (
+    <div className="fm-wrap" ref={wrapRef}>
+      {box && (
+        <div className="fm-planet" style={{ left: box.left, top: box.top, width: box.size, height: box.size }}>
+          <PlanetCanvas lights={MAP_LIGHTS} reduce={reduce} elevation={0.3} spinRate={0.05} />
+        </div>
+      )}
     <svg className="fm" viewBox="0 0 640 420" role="img" aria-label={caption ?? "Flight map from the Wick at 300 km to Lantern 17 at 1,000 km"}>
       <defs>
         <radialGradient id="fm-planet" cx="38%" cy="34%" r="75%">
@@ -179,9 +216,9 @@ export default function FlightMap({
       <circle cx={C.x} cy={C.y} r={R_WICK} className="fm-orbit wick" />
 
       {/* the planet */}
-      <circle cx={C.x} cy={C.y} r={R_PLANET + 8} fill="rgba(127,212,232,0.05)" />
-      <circle cx={C.x} cy={C.y} r={R_PLANET} fill="url(#fm-planet)" stroke="rgba(127,212,232,0.35)" />
-      <text x={C.x} y={C.y + 4} className="fm-text" textAnchor="middle">
+      <circle cx={C.x} cy={C.y} r={R_PLANET + 7} fill="rgba(127,212,232,0.05)" />
+      <circle cx={C.x} cy={C.y} r={R_PLANET} fill="none" stroke="rgba(127,212,232,0.28)" />
+      <text x={C.x} y={C.y + R_PLANET + 16} className="fm-text" textAnchor="middle">
         ECLIPSE-01
       </text>
 
@@ -223,5 +260,6 @@ export default function FlightMap({
         </text>
       )}
     </svg>
+    </div>
   );
 }
