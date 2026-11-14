@@ -150,7 +150,7 @@ export default function OrbitalSection({ lit17 }: { lit17: boolean }) {
           </h2>
           <p className="lede">
             Every object here follows its own orbit around the planet, at its own height and speed. Time runs
-            faster than real life so you can watch the ring turn. Tap any object to read its telemetry.
+            faster than real life so you can watch the network turn. Tap any object to read its telemetry.
           </p>
         </div>
 
