@@ -19,3 +19,17 @@ npm run dev
 ```
 
 Code lives in `app/components/`: `Hud`, `Hero` (orbit + flashlight), `Network`, `Transmission`, `MissionDesigner`, `Sections` (world, systems, crew, footer).
+
+## Orbital view
+
+`OrbitalSection` (the `#orbit` section) is a 3D simulation of Lantern 17 and its surroundings, built with Three.js. It loads only when the section nears the viewport.
+
+- **Scale:** 1 scene unit = 1,000 km. Planet radius 6,371 km, mu = 398,600 km³/s². Objects are drawn far larger than real hardware, and each keeps a safety zone of the same size.
+- **Time:** ×900 by default (×300 and ×2,700 in the controls). One Lantern 17 orbit takes about 18 seconds at ×900.
+- **Physics:** simplified two-body Kepler orbits, solved analytically, so position is an exact function of time.
+- **Sky:** `app/components/orbit/sim.ts` generates 63 objects from a fixed seed (`FIELD_SEED`). The same seed always gives the same sky. Every pair of paths is checked so they never come closer than their safety zones plus 70 km, at any time. Paths that fail are nudged apart and re-tested.
+- **Verify:** `npm run verify:orbits` re-checks the generated sky with an independent search and a 24-hour swept collision test.
+- **Controls:** drag to rotate. Click the view (or use "Control camera" on touch devices) to unlock wheel and pinch zoom. "Follow L-17" rides along with the Lantern.
+
+Code: `app/components/OrbitalSection.tsx` (UI), `app/components/orbit/` (`sim.ts` model, `scene.ts` Three.js scene, `field.worker.ts` and `loadField.ts` for off-thread generation).
+

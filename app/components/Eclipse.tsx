@@ -4,6 +4,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import Hud from "./Hud";
 import Hero from "./Hero";
 import Network from "./Network";
+import OrbitalSection from "./OrbitalSection";
 import Transmission from "./Transmission";
 import MissionDesigner, { type CraftId, type ObjectiveId } from "./MissionDesigner";
 import { Crew, Footer, Systems, World } from "./Sections";
@@ -49,6 +50,7 @@ export default function Eclipse() {
         <Hero lit17={lit17} />
         <World />
         <Network lit17={lit17} />
+        <OrbitalSection lit17={lit17} />
         <Transmission />
         <MissionDesigner
           obj={obj}

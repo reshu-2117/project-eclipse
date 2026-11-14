@@ -47,6 +47,7 @@ export default function Hud({ lit17, ready }: { lit17: boolean; ready: boolean }
         <nav className="nav" aria-label="Sections">
           <a href="#world">World</a>
           <a href="#network">Lanterns</a>
+          <a href="#orbit">Orbit</a>
           <a href="#briefing">Briefing</a>
           <a href="#mission">Mission</a>
           <a href="#crew">Crew</a>
