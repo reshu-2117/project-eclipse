@@ -157,3 +157,5 @@ In `docs/submission/` (copies; the originals were in a temporary folder):
 4. Keep `npm test` green, and update `README.md` and the report when a chunk ships.
 
 **Note**: the card-scene CSS now lives in `app/mission/cardart.css` (imported by `CardArt.tsx`) so the Lab can reuse `CardArt`. `.hg-tag` styles are duplicated under `.lb` in `lab.css` because `/lab` doesn't load `mission.css`.
+
+**Crew charts** (`app/lab/charts.tsx` + `charts.css`, prefix `cx-`/`cm-`): `Result.tsx` now shows `MissDiagram` (ice path vs Lantern 17's 1.5 km clearance), `CityLamps` (four ring gauges of stored light) and `MissionTrace` (smooth monotone-cubic curves for speed left, energy and evidence, Eclipse bands, impact marker, decision ticks, a hover/arrow-key scrubber with a live readout, toggle chips). `Crews.tsx` has `CrewMap`, a crew x ending dot matrix sized by how often each crew lands there. `Result` is also the early-ending screen in the game, so these load there too.

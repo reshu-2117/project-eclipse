@@ -1,10 +1,52 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ENDINGS, STRATEGIES, runPolicy } from "@/lib/game";
+import { ENDINGS, ENDING_ORDER, STRATEGIES, runPolicy } from "@/lib/game";
 import type { EndingId } from "@/lib/game";
+import "./charts.css";
 import Result from "./Result";
 import { TALLY_SEEDS, type Tally } from "./tally";
+
+/** Every crew against every ending: a dot's size is how often that crew lands there across the sample decks. */
+function CrewMap({ tally, pick, onPick }: { tally: Tally | null; pick: string; onPick: (id: string) => void }) {
+  return (
+    <div className="cm">
+      <div className="cm-inner" role="group" aria-label="Which ending each crew reaches, across the sample event decks">
+        <div className="cm-head" aria-hidden="true">
+          <span>Crew</span>
+          {ENDING_ORDER.map((e) => (
+            <span key={e} className={`tier-${ENDINGS[e].tier}`}>
+              {ENDINGS[e].name}
+            </span>
+          ))}
+        </div>
+        {STRATEGIES.map((st, r) => (
+          <button
+            key={st.id}
+            type="button"
+            className={`cm-row${pick === st.id ? " on" : ""}`}
+            aria-pressed={pick === st.id}
+            aria-label={`${st.name}: ${tally ? ENDING_ORDER.filter((e) => tally[st.id]?.[e]).map((e) => `${ENDINGS[e].name} ${tally[st.id]?.[e]} of ${TALLY_SEEDS}`).join(", ") : "working it out"}`}
+            onClick={() => onPick(st.id)}
+          >
+            <b>{st.name}</b>
+            {ENDING_ORDER.map((e, c) => {
+              const n = tally?.[st.id]?.[e] ?? 0;
+              return (
+                <span key={e} className={`cm-cell tier-${ENDINGS[e].tier}`}>
+                  <span className={`cm-dot${n ? "" : " none"}`} style={{ ["--k" as string]: Math.sqrt(n / TALLY_SEEDS), ["--r" as string]: r, ["--c" as string]: c }}>
+                    {n > 1 && <i>{n}</i>}
+                  </span>
+                </span>
+              );
+            })}
+          </button>
+        ))}
+      </div>
+      <p className="cm-note">{tally ? `A bigger, brighter dot means the crew lands there more often. Each crew flew ${TALLY_SEEDS} different event decks. Click a row to watch that crew.` : "Flying the sample runs…"}</p>
+    </div>
+  );
+}
 
 /** The nine scripted crews: pick one, deal it a different event deck, and read exactly what happened. */
 export function Crews({ tally }: { tally: Tally | null }) {
@@ -26,6 +68,8 @@ export function Crews({ tally }: { tally: Tally | null }) {
           Each crew is a scripted player that makes every choice through the real engine: the hangar, the route, the event cards, the station, the big choice and the broadcast. The bar under each name shows the endings it reached across {TALLY_SEEDS} different event decks.
         </p>
       </header>
+
+      <CrewMap tally={tally} pick={pick} onPick={setPick} />
 
       <div className="lb-crew-layout">
         <div className="lb-crews" role="radiogroup" aria-label="Choose a crew">

@@ -10,7 +10,7 @@ const REVEAL = [
   ".lb-ship",
   ".lb-matrix-wrap",
   ".lb-cta-line",
-  ".lb-crew-layout",
+  ".cm, .lb-crew-layout",
   ".lb-spectrum, .lb-ed",
   ".lb-tabs, .lb-panel",
   ".lb-foot p",

@@ -1,57 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { CLOCKS, POWER, SETTLEMENTS, debrief, isEclipse } from "@/lib/game";
+import { debrief } from "@/lib/game";
 import type { GameState, LedgerEntry } from "@/lib/game";
+import { CityLamps, MissDiagram, MissionTrace } from "./charts";
 
 const r0 = (n: number) => Math.round(n).toLocaleString("en-US");
 const r1 = (n: number) => (Math.round(n * 10) / 10).toLocaleString("en-US");
 
-function Chart({ s }: { s: GameState }) {
-  const W = 640;
-  const H = 180;
-  const pad = { l: 36, r: 12, t: 12, b: 24 };
-  const pts = s.stats.track;
-  const maxT = Math.max(32, ...pts.map((p) => p.t));
-  const maxDv = Math.max(1, ...pts.map((p) => p.dvLeft));
-  const x = (t: number) => pad.l + (t / maxT) * (W - pad.l - pad.r);
-  const y = (v: number) => pad.t + (1 - v) * (H - pad.t - pad.b);
-  const line = (f: (p: (typeof pts)[number]) => number) => pts.map((p, i) => `${i ? "L" : "M"}${x(p.t).toFixed(1)},${y(f(p)).toFixed(1)}`).join("");
-  const eclipse: number[] = [];
-  for (let t = 0; t < maxT; t += 0.25) if (isEclipse(t)) eclipse.push(t);
-  const eStart = eclipse[0] ?? 0;
-  const eEnd = eclipse.length ? eclipse[eclipse.length - 1] + 0.25 : 0;
-  const cap = POWER[s.loadout.power].capacityKwh;
-  return (
-    <figure className="lab-chart">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Δv, energy and evidence over the mission">
-        {eclipse.length > 0 && <rect x={x(eStart)} y={pad.t} width={x(eEnd) - x(eStart)} height={H - pad.t - pad.b} className="lab-eclipse" />}
-        <line x1={x(CLOCKS.iceTrueH)} x2={x(CLOCKS.iceTrueH)} y1={pad.t} y2={H - pad.b} className="lab-impact" />
-        <text x={x(CLOCKS.iceTrueH) + 4} y={pad.t + 10} className="lab-axis">
-          impact
-        </text>
-        {eclipse.length > 0 && (
-          <text x={x(eStart) + 4} y={H - pad.b - 6} className="lab-axis">
-            eclipse
-          </text>
-        )}
-        {[0, 6, 12, 18, 24, 30].map((t) => (
-          <text key={t} x={x(t)} y={H - 6} className="lab-axis" textAnchor="middle">
-            {t}h
-          </text>
-        ))}
-        <path d={line((p) => p.dvLeft / maxDv)} className="lab-line is-dv" />
-        <path d={line((p) => p.energy / cap)} className="lab-line is-energy" />
-        <path d={line((p) => p.evidence / 100)} className="lab-line is-evidence" />
-      </svg>
-      <figcaption>
-        <span className="k is-dv">Δv left</span>
-        <span className="k is-energy">Energy</span>
-        <span className="k is-evidence">Evidence</span>
-      </figcaption>
-    </figure>
-  );
-}
+const TONE: Record<string, string> = { best: "#ffd47a", win: "#8fe3b0", price: "#ffb547", partial: "#7fd4e8", notWin: "#ff9a6e", loss: "#ff6a2b" };
 
 function Ledger({ entries }: { entries: LedgerEntry[] }) {
   return (
@@ -112,19 +69,12 @@ export default function Result({ s }: { s: GameState }) {
         </div>
       </div>
 
-      <div className="lab-cities">
-        {o.settlements.map((x) => (
-          <div key={x.id} className={x.failed ? "is-bad" : ""}>
-            <span>{SETTLEMENTS[x.id].name}</span>
-            <div className="lab-bar" aria-hidden="true">
-              <i style={{ width: `${(x.endH / x.startH) * 100}%` }} />
-            </div>
-            <b className="lab-mono">{x.failed ? "failed" : `${r1(x.endH)} of ${x.startH} h`}</b>
-          </div>
-        ))}
+      <div className="cx-visuals">
+        <MissDiagram o={o} />
+        <CityLamps o={o} />
       </div>
 
-      <Chart s={s} />
+      <MissionTrace s={s} ledger={d.ledger} tone={TONE[d.ending.tier]} />
 
       {d.better.length > 0 && (
         <div className="lab-better">
