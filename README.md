@@ -59,7 +59,7 @@ Design decisions made in Chunk 0 (where the handbook left a gap):
 4. **You send one packet, whenever you choose.** You can transmit as soon as you're at the station. Sending early helps the network turn sooner, but the network judges the evidence you had at that moment.
 5. **City reserves drain by the light they're missing,** not only when Lantern 17 is fully dark. Fixing the drift slows the drain. Beaming during the Eclipse costs the cities nothing.
 
-Tests: `npm test` (52 tests). They re-derive every handbook number, check the rules, and play scripted crews to prove that all 8 endings can be reached.
+Tests: `npm test` (58 tests). They re-derive every handbook number, check the rules, and play scripted crews to prove that all 8 endings can be reached.
 
 **Mission Lab:** `/lab` runs the engine live, with handbook-vs-engine checks, a working hangar calculator, and nine scripted crews you can watch play full missions.
 

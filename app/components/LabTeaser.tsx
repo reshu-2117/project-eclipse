@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const STATS = [
   { big: "10 of 10", small: "handbook numbers re-derived from real physics" },
-  { big: "53", small: "automatic tests, all passing" },
+  { big: "58", small: "automatic tests, all passing" },
   { big: "8", small: "endings, every one reachable" },
 ];
 
