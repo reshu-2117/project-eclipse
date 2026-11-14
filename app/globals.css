@@ -443,12 +443,11 @@ a {
   color: var(--ice);
   font-weight: 500;
 }
-.orbit-svg {
+.orbit-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  overflow: visible;
   pointer-events: none;
 }
 .orbit-back { z-index: 2; }
@@ -504,6 +503,35 @@ a {
   0% { box-shadow: 0 0 0 0 rgba(255, 181, 71, 1), 0 0 0 0 rgba(255, 181, 71, 1); }
   30% { box-shadow: 0 0 30px 16px rgba(255, 220, 160, 1), 0 0 120px 60px rgba(255, 181, 71, 0.6); }
   100% { box-shadow: 0 0 6px 2px rgba(255, 181, 71, 0.75), 0 0 26px 8px rgba(255, 181, 71, 0.22); }
+}
+/* Lantern 17's label rides with it, above everything, on whichever side has room */
+.lantern-anchor {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  z-index: 7;
+  pointer-events: none;
+  will-change: transform;
+}
+.lantern-anchor .lantern-tag {
+  pointer-events: auto;
+  transition: border-color 0.2s, background 0.2s, opacity 0.4s;
+}
+.lantern-anchor.hidden-side .lantern-tag {
+  opacity: 0.45;
+}
+.lantern-anchor.flip .lantern-tag {
+  left: auto;
+  right: 18px;
+}
+.lantern-anchor.flip .lantern-tag::before {
+  left: auto;
+  right: -14px;
+  transform: rotate(45deg);
+  transform-origin: left;
 }
 .lantern-tag {
   position: absolute;

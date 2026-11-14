@@ -2,154 +2,310 @@
 
 import { useEffect, useRef, type CSSProperties, type PointerEvent } from "react";
 
-const N = 24;
+const PLANES = 3;
+const PER_PLANE = 8;
+const N = PLANES * PER_PLANE;
 const TARGET = 16; // Lantern 17 (zero-based index)
-const BASE_TILT = (-10 * Math.PI) / 180;
 
 /**
- * Every Lantern has its own orbit: a different size, eccentricity, tilt and speed, with the planet at
- * the focus of each ellipse. Seeded, so the sky is the same on every visit. Sizes are fractions of
- * the stage width; speed follows Kepler's third law (small orbits run faster).
+ * The Lanterns fly a Walker Delta constellation, 56°:24/3/1 — the same pattern as the Galileo
+ * navigation satellites. 24 Lanterns share one circular altitude in 3 orbital planes inclined 56° to the
+ * equator, ascending nodes 120° apart, 8 Lanterns evenly spaced in each plane. The phasing factor F = 1
+ * offsets neighbouring planes by 360°·F/24 = 15°, which keeps every Lantern clear of every other where
+ * the planes cross. One altitude means one period, so the whole network turns as a rigid lattice and
+ * every Lantern stays exactly on its own ring.
+ *
+ * Positions are a pure function of time and the same projection draws the rings, the trails and the
+ * Lanterns, so a Lantern can never drift off its line.
  */
-interface HeroOrbit {
-  a: number;
-  e: number;
-  /** direction of the closest point, rad (each orbit points a different way) */
-  w: number;
-  /** how edge-on the orbit is to the viewer, 0 to 1 */
-  k: number;
-  tilt: number;
-  phase: number;
-  speed: number;
+const INCLINATION = (56 * Math.PI) / 180;
+const PHASING = 1;
+/** orbit radius, as a fraction of the stage width (the planet's radius is 0.29) */
+const RADIUS = 0.41;
+const PLANET_RADIUS = 0.29;
+/** right ascension of the first plane's ascending node, chosen for the composition */
+const RAAN0 = (-18 * Math.PI) / 180;
+/** camera elevation above the equator, and roll of the whole system on screen */
+const ELEVATION = (17 * Math.PI) / 180;
+const ROLL_DEG = 11;
+const ROLL = (ROLL_DEG * Math.PI) / 180;
+/** one orbit, ms */
+const PERIOD = 96_000;
+const OMEGA = (Math.PI * 2) / PERIOD;
+/** where the clock starts, as a fraction of an orbit: Lantern 17 begins on the near side, lower left */
+const EPOCH = 0.86;
+/** length of a Lantern's light trail along its ring, rad */
+const TRAIL = (24 * Math.PI) / 180;
+
+const AMBER = "255, 181, 71";
+
+interface Plane {
+  /** node direction and in-plane normal, in world space (x right, y north, z toward the viewer) */
+  n: [number, number, number];
+  m: [number, number, number];
 }
 
-function mulberry32(seed: number) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+const PLANE_AXES: Plane[] = Array.from({ length: PLANES }, (_, p) => {
+  const raan = RAAN0 + (p * Math.PI * 2) / PLANES;
+  const n: [number, number, number] = [Math.cos(raan), 0, -Math.sin(raan)];
+  const ci = Math.cos(INCLINATION);
+  const si = Math.sin(INCLINATION);
+  // perpendicular to n in the equator (prograde: the near side moves left, with the planet's surface), tilted by i
+  const m: [number, number, number] = [Math.sin(raan) * ci, si, Math.cos(raan) * ci];
+  return { n, m };
+});
 
-const ORBITS: HeroOrbit[] = (() => {
-  const rnd = mulberry32(0x17e1195e);
-  const between = (lo: number, hi: number) => lo + (hi - lo) * rnd();
-  return Array.from({ length: N }, (_, i) => {
-    if (i === TARGET) {
-      // Lantern 17: a clear ellipse, starting on the near side of the planet
-      return { a: 0.4, e: 0.22, w: 0, k: 0.26, tilt: BASE_TILT, phase: 2.4, speed: 0.00006 * Math.pow(0.44 / 0.4, 1.5) };
-    }
-    const a = between(0.27, 0.39);
-    return {
-      a,
-      e: between(0.06, 0.3),
-      w: between(0, Math.PI * 2),
-      k: between(0.12, 0.45),
-      tilt: BASE_TILT + between(-0.5, 0.5),
-      phase: between(0, Math.PI * 2),
-      speed: 0.00006 * Math.pow(0.44 / a, 1.5),
-    };
-  });
-})();
+/** argument of latitude of each Lantern at t = 0 (Walker phasing) */
+const SLOT = Array.from({ length: N }, (_, i) => {
+  const p = Math.floor(i / PER_PLANE);
+  const s = i % PER_PLANE;
+  return (s * Math.PI * 2) / PER_PLANE + (p * PHASING * Math.PI * 2) / N;
+});
 
-function kepler(M: number, e: number) {
-  let E = M + e * Math.sin(M);
-  for (let k = 0; k < 6; k++) E -= (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
-  return E;
-}
+const CE = Math.cos(ELEVATION);
+const SE = Math.sin(ELEVATION);
+const CR = Math.cos(ROLL);
+const SR = Math.sin(ROLL);
 
 /**
- * Point on an orbit at eccentric anomaly E: stage fractions from the planet's centre, plus `v`, how
- * far the point is toward (+) or away from (-) the viewer, which decides front and back.
+ * Screen position of argument of latitude `u` on plane `p`: x, y in stage fractions from the planet's
+ * centre (y down), and depth d from -1 (far side) to 1 (near side).
  */
-function orbitPoint(o: HeroOrbit, E: number): { x: number; y: number; v: number } {
-  const u0 = o.a * (Math.cos(E) - o.e);
-  const v0 = o.a * Math.sqrt(1 - o.e * o.e) * Math.sin(E);
-  const cw = Math.cos(o.w);
-  const sw = Math.sin(o.w);
-  const u = u0 * cw - v0 * sw;
-  const v = u0 * sw + v0 * cw;
-  const ct = Math.cos(o.tilt);
-  const st = Math.sin(o.tilt);
-  const sy = v * o.k;
-  return { x: u * ct - sy * st, y: u * st + sy * ct, v };
+function project(p: number, u: number) {
+  const { n, m } = PLANE_AXES[p];
+  const cu = Math.cos(u);
+  const su = Math.sin(u);
+  const wx = cu * n[0] + su * m[0];
+  const wy = cu * n[1] + su * m[1];
+  const wz = cu * n[2] + su * m[2];
+  // camera above the equator: far points rise on screen
+  const y1 = wy * CE - wz * SE;
+  const z1 = wy * SE + wz * CE;
+  // roll
+  const x2 = wx * CR - y1 * SR;
+  const y2 = wx * SR + y1 * CR;
+  return { x: x2 * RADIUS, y: -y2 * RADIUS, d: z1 };
 }
 
-/** SVG paths (viewBox 0..100) for the parts of an orbit in front of, and behind, the planet. */
-function orbitPaths(o: HeroOrbit) {
-  const steps = 120;
-  const pts = Array.from({ length: steps + 1 }, (_, k) => orbitPoint(o, (k / steps) * Math.PI * 2));
-  let front = "";
-  let back = "";
-  let prevHalf = "";
-  for (let k = 0; k < steps; k++) {
-    const a = pts[k];
-    const b = pts[k + 1];
-    const half = a.v + b.v > 0 ? "front" : "back";
-    const seg = `${prevHalf === half ? "" : `M${(50 + a.x * 100).toFixed(2)} ${(50 + a.y * 100).toFixed(2)} `}L${(50 + b.x * 100).toFixed(2)} ${(50 + b.y * 100).toFixed(2)} `;
-    if (half === "front") front += seg;
-    else back += seg;
-    prevHalf = half;
-  }
-  return { front, back };
+function lanternAngle(i: number, elapsed: number) {
+  return SLOT[i] + (EPOCH * PERIOD + elapsed) * OMEGA;
 }
 
-const PATHS = ORBITS.map(orbitPaths);
-const OTHER_BACK = PATHS.filter((_, i) => i !== TARGET).map((p) => p.back).join(" ");
-const OTHER_FRONT = PATHS.filter((_, i) => i !== TARGET).map((p) => p.front).join(" ");
-const TARGET_BACK = PATHS[TARGET].back;
-const TARGET_FRONT = PATHS[TARGET].front;
+/** Hidden behind the planet: on the far side and inside the planet's disc. */
+function occluded(x: number, y: number, d: number) {
+  return d < 0 && x * x + y * y < PLANET_RADIUS * PLANET_RADIUS;
+}
+
+/** Brightness falls off toward the far side, so the lattice reads in depth. */
+function depthAlpha(d: number) {
+  const t = (d + 1) / 2;
+  return 0.3 + 0.7 * t * t;
+}
+
+/** Soft glowing Lantern, drawn once and stamped every frame. */
+function makeSprite(dpr: number) {
+  const r = 18;
+  const c = document.createElement("canvas");
+  c.width = c.height = Math.ceil(r * 2 * dpr);
+  const g = c.getContext("2d");
+  if (!g) return c;
+  g.scale(dpr, dpr);
+  const glow = g.createRadialGradient(r, r, 0, r, r, r);
+  glow.addColorStop(0, `rgba(${AMBER}, 0.55)`);
+  glow.addColorStop(0.22, `rgba(${AMBER}, 0.22)`);
+  glow.addColorStop(0.55, `rgba(${AMBER}, 0.06)`);
+  glow.addColorStop(1, `rgba(${AMBER}, 0)`);
+  g.fillStyle = glow;
+  g.fillRect(0, 0, r * 2, r * 2);
+  const core = g.createRadialGradient(r, r, 0, r, r, 3.6);
+  core.addColorStop(0, "rgba(255, 244, 222, 1)");
+  core.addColorStop(0.55, `rgba(${AMBER}, 1)`);
+  core.addColorStop(1, `rgba(${AMBER}, 0)`);
+  g.fillStyle = core;
+  g.beginPath();
+  g.arc(r, r, 3.6, 0, Math.PI * 2);
+  g.fill();
+  return c;
+}
 
 export default function Hero({ lit17 }: { lit17: boolean }) {
   const heroRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
-  const dots = useRef<(HTMLSpanElement | null)[]>([]);
+  const backRef = useRef<HTMLCanvasElement>(null);
+  const frontRef = useRef<HTMLCanvasElement>(null);
+  const markerRef = useRef<HTMLSpanElement>(null);
+  const anchorRef = useRef<HTMLSpanElement>(null);
+  const litRef = useRef(lit17);
+  const redrawRef = useRef<() => void>(() => {});
 
-  // Orbit loop: the Lanterns circle the planet, passing behind and in front of it.
+  useEffect(() => {
+    litRef.current = lit17;
+    redrawRef.current();
+  }, [lit17]);
+
+  // The constellation: rings, light trails and Lanterns, on a canvas behind the planet and one in front.
   useEffect(() => {
     const stage = stageRef.current;
-    if (!stage) return;
+    const back = backRef.current;
+    const front = frontRef.current;
+    const marker = markerRef.current;
+    const anchor = anchorRef.current;
+    if (!stage || !back || !front || !marker || !anchor) return;
+    const bctx = back.getContext("2d");
+    const fctx = front.getContext("2d");
+    if (!bctx || !fctx) return;
+
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let size = stage.clientWidth;
-    const ro = new ResizeObserver(() => {
-      size = stage.clientWidth;
-      if (reduce) place(0);
-    });
-    ro.observe(stage);
+    let size = 0;
+    let dpr = 1;
+    let sprite = makeSprite(1);
+    // the static rings, drawn once per resize
+    const ringBack = document.createElement("canvas");
+    const ringFront = document.createElement("canvas");
+    let flipped = false;
 
-    const t0 = performance.now();
-    let raf = 0;
+    function resize() {
+      size = stage!.clientWidth;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const px = Math.round(size * dpr);
+      for (const c of [back!, front!, ringBack, ringFront]) {
+        c.width = px;
+        c.height = px;
+      }
+      sprite = makeSprite(dpr);
+      drawRings();
+    }
 
-    function place(elapsed: number) {
-      for (let i = 0; i < N; i++) {
-        const el = dots.current[i];
-        if (!el) continue;
-        const o = ORBITS[i];
-        const E = kepler(o.phase + elapsed * o.speed, o.e);
-        const p = orbitPoint(o, E);
-        const s = Math.max(-1, Math.min(1, p.v / (o.a * (1 + o.e))));
-        const front = s > 0;
-        const depth = (s + 1) / 2;
-        el.style.transform = `translate3d(${(p.x * size).toFixed(1)}px, ${(p.y * size).toFixed(1)}px, 0) scale(${(0.7 + depth * 0.45).toFixed(3)})`;
-        el.style.zIndex = front ? "6" : "2";
-        el.style.opacity = front ? "1" : (0.35 + depth * 0.6).toFixed(2);
+    function drawRings() {
+      const rb = ringBack.getContext("2d");
+      const rf = ringFront.getContext("2d");
+      if (!rb || !rf) return;
+      for (const g of [rb, rf]) {
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.clearRect(0, 0, ringBack.width, ringBack.height);
+        g.setTransform(dpr, 0, 0, dpr, size / 2 * dpr, size / 2 * dpr);
+        g.lineWidth = 1;
+        g.lineCap = "round";
+      }
+      const steps = 360;
+      for (let p = 0; p < PLANES; p++) {
+        let prev = project(p, 0);
+        for (let k = 1; k <= steps; k++) {
+          const cur = project(p, (k / steps) * Math.PI * 2);
+          const d = (prev.d + cur.d) / 2;
+          const g = d > 0 ? rf : rb;
+          g.strokeStyle = `rgba(${AMBER}, ${(0.3 * depthAlpha(d)).toFixed(3)})`;
+          g.beginPath();
+          g.moveTo(prev.x * size, prev.y * size);
+          g.lineTo(cur.x * size, cur.y * size);
+          g.stroke();
+          prev = cur;
+        }
       }
     }
 
-    function loop(now: number) {
-      place(now - t0);
-      raf = requestAnimationFrame(loop);
+    function draw(elapsed: number) {
+      for (const [g, rings] of [
+        [bctx!, ringBack],
+        [fctx!, ringFront],
+      ] as const) {
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.clearRect(0, 0, back!.width, back!.height);
+        g.drawImage(rings, 0, 0);
+        g.setTransform(dpr, 0, 0, dpr, size / 2 * dpr, size / 2 * dpr);
+        g.lineCap = "round";
+      }
+
+      const lit = litRef.current;
+      const segs = 18;
+      for (let i = 0; i < N; i++) {
+        if (i === TARGET && !lit) continue; // a dark Lantern leaves no light behind it
+        const p = Math.floor(i / PER_PLANE);
+        const u = lanternAngle(i, elapsed);
+        // light trail, fading out behind the Lantern along its own ring
+        let prev = project(p, u - TRAIL);
+        for (let k = 1; k <= segs; k++) {
+          const t = k / segs;
+          const cur = project(p, u - TRAIL * (1 - t));
+          const d = (prev.d + cur.d) / 2;
+          const g = d > 0 ? fctx! : bctx!;
+          g.strokeStyle = `rgba(${AMBER}, ${(0.62 * t * t * depthAlpha(d)).toFixed(3)})`;
+          g.lineWidth = 0.6 + 1.4 * t;
+          g.beginPath();
+          g.moveTo(prev.x * size, prev.y * size);
+          g.lineTo(cur.x * size, cur.y * size);
+          g.stroke();
+          prev = cur;
+        }
+      }
+
+      const half = 18;
+      for (let i = 0; i < N; i++) {
+        const p = Math.floor(i / PER_PLANE);
+        const pt = project(p, lanternAngle(i, elapsed));
+        const x = pt.x * size;
+        const y = pt.y * size;
+        if (i === TARGET) {
+          const scale = 0.84 + 0.26 * ((pt.d + 1) / 2);
+          marker!.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${scale.toFixed(3)})`;
+          marker!.style.zIndex = pt.d > 0 ? "6" : "2";
+          marker!.style.opacity = depthAlpha(pt.d).toFixed(3);
+          anchor!.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
+          // keep the tag on the open side of the Lantern
+          if (!flipped && pt.x > 0.16) flipped = true;
+          else if (flipped && pt.x < 0.1) flipped = false;
+          anchor!.classList.toggle("flip", flipped);
+          anchor!.classList.toggle("hidden-side", occluded(pt.x, pt.y, pt.d));
+          continue;
+        }
+        if (occluded(pt.x, pt.y, pt.d)) continue;
+        const g = pt.d > 0 ? fctx! : bctx!;
+        const s = 0.8 + 0.32 * ((pt.d + 1) / 2);
+        g.globalAlpha = depthAlpha(pt.d);
+        g.drawImage(sprite, x - half * s, y - half * s, half * 2 * s, half * 2 * s);
+        g.globalAlpha = 1;
+      }
     }
 
-    if (reduce) place(0);
-    else raf = requestAnimationFrame(loop);
+    const t0 = performance.now();
+    let raf = 0;
+    let visible = true;
+
+    function loop(now: number) {
+      draw(now - t0);
+      raf = visible ? requestAnimationFrame(loop) : 0;
+    }
+
+    function start() {
+      if (reduce) draw(0);
+      else if (!raf) raf = requestAnimationFrame(loop);
+    }
+
+    redrawRef.current = () => {
+      if (reduce) draw(0);
+    };
+
+    resize();
+    start();
+
+    const ro = new ResizeObserver(() => {
+      resize();
+      if (reduce) draw(0);
+    });
+    ro.observe(stage);
+
+    // pause while the hero is off screen
+    const io = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible) start();
+    });
+    io.observe(stage);
 
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      io.disconnect();
+      redrawRef.current = () => {};
     };
   }, []);
 
@@ -204,46 +360,30 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
         </div>
 
         <div className="stage" ref={stageRef}>
-          <svg className="orbit-svg orbit-back" viewBox="0 0 100 100" aria-hidden="true">
-            <path d={OTHER_BACK} stroke="#FFB547" strokeOpacity="0.07" strokeWidth="0.18" fill="none" />
-            <path d={TARGET_BACK} stroke="#FFB547" strokeOpacity="0.24" strokeWidth="0.25" strokeDasharray="0.6 0.9" fill="none" />
-          </svg>
+          <canvas className="orbit-canvas orbit-back" ref={backRef} aria-hidden="true" />
 
-          <div className="planet" aria-hidden="true">
-            <div className="planet-shade" />
+          <div className="planet" style={{ transform: `rotate(${-ROLL_DEG}deg)` }} aria-hidden="true">
+            <div className="planet-shade" style={{ transform: `rotate(${ROLL_DEG}deg)` }} />
           </div>
 
-          <svg className="orbit-svg orbit-front" viewBox="0 0 100 100" aria-hidden="true">
-            <path d={OTHER_FRONT} stroke="#FFB547" strokeOpacity="0.14" strokeWidth="0.18" fill="none" />
-            <path d={TARGET_FRONT} stroke="#FFB547" strokeOpacity="0.5" strokeWidth="0.25" fill="none" />
-          </svg>
+          <canvas className="orbit-canvas orbit-front" ref={frontRef} aria-hidden="true" />
 
-          {Array.from({ length: N }, (_, i) => {
-            const isTarget = i === TARGET;
-            const cls = isTarget ? (lit17 ? "lantern lantern-reborn" : "lantern lantern-dead") : "lantern";
-            return (
-              <span
-                key={i}
-                ref={(el) => {
-                  dots.current[i] = el;
-                }}
-                className={cls}
-                style={{ "--d": `${(i % 6) * 0.55}s` } as CSSProperties}
-              >
-                {isTarget && (
-                  <a href="#mission" className={lit17 ? "lantern-tag ok" : "lantern-tag"}>
-                    <i className={lit17 ? "dot dot-amber" : "dot dot-ember"} />
-                    L-17 · {lit17 ? "RELIT" : "OFFLINE"}
-                  </a>
-                )}
-              </span>
-            );
-          })}
+          <span
+            ref={markerRef}
+            className={lit17 ? "lantern lantern-reborn" : "lantern lantern-dead"}
+            aria-hidden="true"
+          />
+          <span ref={anchorRef} className="lantern-anchor">
+            <a href="#mission" className={lit17 ? "lantern-tag ok" : "lantern-tag"}>
+              <i className={lit17 ? "dot dot-amber" : "dot dot-ember"} />
+              L-17 · {lit17 ? "RELIT" : "OFFLINE"}
+            </a>
+          </span>
 
-          <p className="planet-label" style={{ left: "6%", top: "10%" }}>
+          <p className="planet-label" style={{ left: "4%", top: "1.5%" }}>
             <b>+</b> ECLIPSE-01 · ROGUE PLANET
           </p>
-          <p className="planet-label" style={{ right: "4%", bottom: "12%", textAlign: "right" }}>
+          <p className="planet-label" style={{ right: "4%", bottom: "1.5%", textAlign: "right" }}>
             NO STAR · NO SUNRISE
             <br />
             <b>SUBSURFACE OCEAN</b> · TRACES OF LIFE

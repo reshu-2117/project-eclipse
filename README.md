@@ -20,6 +20,10 @@ npm run dev
 
 Code lives in `app/components/`: `Hud`, `Hero` (orbit + flashlight), `Network`, `Transmission`, `MissionDesigner`, `Sections` (world, systems, crew, footer).
 
+## Hero constellation
+
+The 24 Lanterns in the hero fly a Walker Delta 56°:24/3/1 constellation, the pattern used by the Galileo navigation satellites: 3 circular orbital planes inclined 56°, ascending nodes 120° apart, 8 Lanterns per plane, with neighbouring planes phased 15° apart so no two Lanterns ever meet where the planes cross. All Lanterns share one altitude and one period, so the network turns as a rigid lattice. Rings, light trails and Lanterns are drawn on two canvases (behind and in front of the planet) from one projection function, so every Lantern stays exactly on its ring. Lanterns move prograde, with the planet's surface, and disappear only when they pass behind the planet's disc.
+
 ## Orbital view
 
 `OrbitalSection` (the `#orbit` section) is a 3D simulation of Lantern 17 and its surroundings, built with Three.js. It loads only when the section nears the viewport.
