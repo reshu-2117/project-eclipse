@@ -22,6 +22,7 @@ import {
 } from "@/lib/game";
 import type { ZoneId } from "@/lib/game";
 import CardArt from "../mission/CardArt";
+import { HUB, ZONE_POS } from "../mission/stationMap";
 import { HullThumb } from "../mission/Blueprint";
 
 const r0 = (n: number) => Math.round(n).toLocaleString("en-US");
@@ -137,19 +138,6 @@ function Cards() {
 }
 
 /* ---------- the station ---------- */
-const HUB = { x: 310, y: 190 };
-const ZONE_POS = (() => {
-  const out = {} as Record<ZoneId, { x: number; y: number }>;
-  const others = ZONE_ORDER.filter((z) => z !== "dock");
-  out.dock = HUB;
-  others.forEach((id, i) => {
-    const a = ((-160 + i * (320 / (others.length - 1))) * Math.PI) / 180;
-    const rad = ZONES[id].far ? 158 : 98;
-    out[id] = { x: HUB.x + Math.cos(a) * rad * 1.45, y: HUB.y + Math.sin(a) * rad * 0.95 };
-  });
-  return out;
-})();
-
 function Station() {
   const [sel, setSel] = useState<ZoneId>("dock");
   const z = ZONES[sel];

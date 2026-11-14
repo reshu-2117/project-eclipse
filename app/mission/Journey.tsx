@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CLOCKS, ECLIPSE, EVENTS, ROUTES, dvLeft, iceClock, isEclipse, options } from "@/lib/game";
 import type { Action, Delta, EventId, GameState, LedgerEntry } from "@/lib/game";
@@ -73,12 +72,14 @@ export default function Journey({
   sound,
   say,
   onRebuild,
+  onWork,
 }: {
   game: GameState;
   act: (a: Action) => string | null;
   sound: Sound;
   say: (line: VoiceLine) => void;
   onRebuild: () => void;
+  onWork: () => void;
 }) {
   const n = game.deck.length;
   const [pending, setPending] = useState<Pending | null>(null);
@@ -283,12 +284,12 @@ export default function Journey({
                   </li>
                 </ul>
                 <p className="ms-gate-fine">
-                  Surveying the station, reading its clues and making the big choice are the next part of this build. You can watch a full mission play out in the Mission Lab.
+                  Lantern 17 is failing, and the obvious reason may not be the true one. From here every job costs hours, and the ice clock keeps running.
                 </p>
                 <div className="ms-gate-actions">
-                  <Link href="/lab" className="btn btn-lantern">
-                    Watch a mission in the Mission Lab <span aria-hidden="true">↗</span>
-                  </Link>
+                  <button type="button" className="btn btn-lantern" onClick={onWork}>
+                    Start work at the station <span aria-hidden="true">→</span>
+                  </button>
                   <button type="button" className="btn btn-ghost" onClick={onRebuild}>
                     Build a different ship
                   </button>

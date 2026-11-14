@@ -18,9 +18,11 @@ import type { Action, GameState } from "@/lib/game";
 import { CREDITS_VOICE, DISCLAIMER, ONE_RULE, type VoiceLine } from "@/lib/game/data/story";
 import { Sound, playLine, saveSettings, type LineHandle, type Settings } from "./audio";
 import Result from "../lab/Result";
+import Decision from "./Decision";
 import Hangar from "./Hangar";
 import Journey from "./Journey";
 import Route from "./Route";
+import Station from "./Station";
 
 // ───────────────────────────── saved runs ─────────────────────────────
 
@@ -276,6 +278,8 @@ export default function Mission() {
   const gameRef = useRef<GameState>(createGame(1));
   const game = useMemo(() => replay(run.seed, run.actions).state, [run]);
   const [caption, setCaption] = useState<{ text: string; who: string } | null>(null);
+  // after docking, the player chooses when to start work at the station
+  const [working, setWorking] = useState(false);
 
   // sound follows the switch
   useEffect(() => {
@@ -367,6 +371,7 @@ export default function Mission() {
     const seed = newSeed();
     const start = replay(seed, [{ type: "begin" }]);
     commit({ v: 1, seed, actions: [{ type: "begin" }] }, start.state);
+    setWorking(false);
     setPlaying(true);
   };
 
@@ -376,6 +381,7 @@ export default function Mission() {
     sound.setEnabled(settings.sound);
     sound.swell(110);
     commit(saved, replay(saved.seed, saved.actions).state);
+    setWorking(false);
     setPlaying(true);
   };
 
@@ -383,6 +389,7 @@ export default function Mission() {
     said.current.clear();
     const seed = newSeed();
     commit({ v: 1, seed, actions: [{ type: "begin" }] }, replay(seed, [{ type: "begin" }]).state);
+    setWorking(false);
   };
 
   const label =
@@ -393,8 +400,14 @@ export default function Mission() {
         : game.phase === "journey"
           ? "EN ROUTE TO LANTERN 17"
           : game.phase === "station"
-            ? "LANTERN 17 · DOCKED"
-            : "MISSION OVER";
+            ? working
+              ? "LANTERN 17 · WORKING"
+              : "LANTERN 17 · DOCKED"
+            : game.phase === "choice"
+              ? "LANTERN 17 · THE BIG CHOICE"
+              : game.phase === "endgame"
+                ? "LANTERN 17 · HOLDING"
+                : "MISSION OVER";
 
   if (!playing) {
     return (
@@ -418,8 +431,12 @@ export default function Mission() {
             <Hangar game={game} act={act} sound={sound} say={say} />
           ) : game.phase === "route" ? (
             <Route game={game} act={act} sound={sound} say={say} />
+          ) : game.phase === "choice" || game.phase === "endgame" ? (
+            <Decision game={game} act={act} sound={sound} />
+          ) : game.phase === "station" && working ? (
+            <Station game={game} act={act} sound={sound} />
           ) : (
-            <Journey game={game} act={act} sound={sound} say={say} onRebuild={rebuild} />
+            <Journey game={game} act={act} sound={sound} say={say} onRebuild={rebuild} onWork={() => setWorking(true)} />
           )}
         </main>
       )}
