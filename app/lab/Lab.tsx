@@ -62,7 +62,7 @@ export default function Lab() {
 
   const passed = proofs.filter((p) => p.ok).length;
   const stats = [
-    { big: <><CountUp to={passed} /> / {proofs.length}</>, small: "physics numbers re-derived and matching" },
+    { big: <><CountUp to={passed} /><em>/</em>{proofs.length}</>, small: "physics numbers re-derived and matching" },
     { big: <CountUp to={TEST_COUNT} />, small: "automatic tests, all passing" },
     { big: <CountUp to={STRATEGIES.length} />, small: "scripted crews that fly whole missions" },
     { big: <CountUp to={ENDING_ORDER.length} />, small: "endings, every one reachable" },
