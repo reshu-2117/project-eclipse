@@ -196,6 +196,43 @@ export const ARRIVE: VoiceLine = {
   text: "Docking complete. You are on Lantern 17. The clock is yours.",
 };
 
+/** The Director at the station: a handful of lines at the moments that matter. No spoilers. */
+export const STATION_ENTER: VoiceLine = {
+  id: "dir-station",
+  role: "director",
+  text: "Lantern 17. Fly a survey first. You can't fix what you can't see.",
+};
+
+export const STATION_CLUE: VoiceLine = {
+  id: "dir-clue",
+  role: "director",
+  text: "That's a clue. Pin it. Keep looking.",
+};
+
+export const STATION_LEAK: VoiceLine = {
+  id: "dir-leak",
+  role: "director",
+  text: "Ammonia. The coolant is leaking, and the reactor will shut itself down if it isn't patched. Watch that clock.",
+};
+
+export const STATION_TEST: VoiceLine = {
+  id: "dir-test",
+  role: "director",
+  text: "Test complete. Whatever you measured, that number is yours now.",
+};
+
+export const CHOICE_ENTER: VoiceLine = {
+  id: "dir-choice",
+  role: "director",
+  text: "This is the part you can't take back. Think about the cities, and about the clock.",
+};
+
+export const DEPART: VoiceLine = {
+  id: "dir-depart",
+  role: "director",
+  text: "Undocking. Bring the data home.",
+};
+
 /** The other crew's mayday, the distress call card (E4). Their log holds clue C5 if you help. */
 export const DISTRESS: VoiceLine = {
   id: "crew-distress",
@@ -248,5 +285,11 @@ export const ALL_LINES: VoiceLine[] = [
   HANGAR_LAUNCH,
   ROUTE_ENTER,
   ARRIVE,
+  STATION_ENTER,
+  STATION_CLUE,
+  STATION_LEAK,
+  STATION_TEST,
+  CHOICE_ENTER,
+  DEPART,
   DISTRESS,
 ];

@@ -78,6 +78,42 @@
       "voice": "Liam",
       "bytes": 125012,
       "chars": 128
+    },
+    "dir-station": {
+      "hash": "a8345d6e909e",
+      "voice": "Sarah",
+      "bytes": 77783,
+      "chars": 65
+    },
+    "dir-clue": {
+      "hash": "e36093d6898e",
+      "voice": "Sarah",
+      "bytes": 53123,
+      "chars": 36
+    },
+    "dir-leak": {
+      "hash": "802dc03df3cc",
+      "voice": "Sarah",
+      "bytes": 103696,
+      "chars": 109
+    },
+    "dir-test": {
+      "hash": "1ac32c7d93df",
+      "voice": "Sarah",
+      "bytes": 74439,
+      "chars": 63
+    },
+    "dir-choice": {
+      "hash": "67c0497ecffc",
+      "voice": "Sarah",
+      "bytes": 73185,
+      "chars": 82
+    },
+    "dir-depart": {
+      "hash": "bba2ac93f18b",
+      "voice": "Sarah",
+      "bytes": 38913,
+      "chars": 31
     }
   }
 }

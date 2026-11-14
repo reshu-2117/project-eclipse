@@ -1,7 +1,7 @@
 "use client";
 
 import "./station.css";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BELIEF,
   CHOICES,
@@ -22,6 +22,7 @@ import {
   returnCostDv,
 } from "@/lib/game";
 import type { Action, ChoiceId, GameState } from "@/lib/game";
+import { CHOICE_ENTER, DEPART, type VoiceLine } from "@/lib/game/data/story";
 import type { Sound } from "./audio";
 import { Latest, Transmit } from "./Station";
 
@@ -32,12 +33,18 @@ const ORDER: ChoiceId[] = ["A", "B", "C", "D", "E"];
 const NEEDS_HANDS: ChoiceId[] = ["A", "C"];
 
 /** The big choice, and the last hours at the station. */
-export default function Decision({ game, act, sound }: { game: GameState; act: (a: Action) => string | null; sound: Sound }) {
+export default function Decision({ game, act, sound, say }: { game: GameState; act: (a: Action) => string | null; sound: Sound; say: (line: VoiceLine) => void }) {
   const [sel, setSel] = useState<ChoiceId | null>(null);
   const [how, setHow] = useState<"eva" | "arm">(game.loadout.kit.includes("arm") ? "arm" : "eva");
   const [from, setFrom] = useState<number | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const opts = useMemo(() => options(game), [game]);
+  const phase = game.phase;
+  useEffect(() => {
+    if (phase !== "choice") return;
+    const id = window.setTimeout(() => say(CHOICE_ENTER), 800);
+    return () => window.clearTimeout(id);
+  }, [phase, say]);
 
   const run = (a: Action, kind: "lock" | "radio" | "thump" = "lock") => {
     const before = game.log.length;
@@ -282,7 +289,10 @@ export default function Decision({ game, act, sound }: { game: GameState; act: (
               );
             })}
             <div>
-              <button type="button" className="btn btn-lantern" onClick={() => run({ type: "depart" }, "thump")}>
+              <button type="button" className="btn btn-lantern" onClick={() => {
+                  say(DEPART);
+                  run({ type: "depart" }, "thump");
+                }}>
                 Undock and head home <span aria-hidden="true">→</span>
               </button>
               <p className="st-note">

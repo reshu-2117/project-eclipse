@@ -30,6 +30,7 @@ import {
   testUnlocked,
 } from "@/lib/game";
 import type { Action, ClueId, GameState, HazardId, HypId, Method, PacketId, ZoneId } from "@/lib/game";
+import { STATION_CLUE, STATION_ENTER, STATION_LEAK, STATION_TEST, type VoiceLine } from "@/lib/game/data/story";
 import type { Sound } from "./audio";
 import { HUB, ZONE_POS } from "./stationMap";
 
@@ -123,7 +124,19 @@ export function Transmit({
   );
 }
 
-export default function Station({ game, act, sound }: { game: GameState; act: (a: Action) => string | null; sound: Sound }) {
+export default function Station({
+  game,
+  act,
+  sound,
+  say,
+  onHelp,
+}: {
+  game: GameState;
+  act: (a: Action) => string | null;
+  sound: Sound;
+  say: (line: VoiceLine) => void;
+  onHelp: () => void;
+}) {
   const [sel, setSel] = useState<ZoneId>("dock");
   const [from, setFrom] = useState<number | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
@@ -150,12 +163,27 @@ export default function Station({ game, act, sound }: { game: GameState; act: (a
     const n = game.found.length;
     const haz = game.found.some((f) => f === "leak" || f === "drift");
     if (n > seen.current) {
-      if (haz && !hadHazard.current) sound.alarm();
-      else sound.ping();
+      if (haz && !hadHazard.current) {
+        sound.alarm();
+        window.setTimeout(() => say(STATION_LEAK), 700);
+      } else {
+        sound.ping();
+        if (game.found.some((f) => f in CLUES)) window.setTimeout(() => say(STATION_CLUE), 500);
+      }
     }
     seen.current = n;
     hadHazard.current = haz;
-  }, [game.found, sound]);
+  }, [game.found, sound, say, game.found.length]);
+
+  // the Director greets you at the station, and comments on the test
+  useEffect(() => {
+    const id = window.setTimeout(() => say(STATION_ENTER), 900);
+    return () => window.clearTimeout(id);
+  }, [say]);
+  const tested = !!game.test;
+  useEffect(() => {
+    if (tested) say(STATION_TEST);
+  }, [tested, say]);
 
   const lidar = hasSensor(game, "lidar");
   const known = (z: ZoneId) => z === "dock" || game.zonesKnown.includes(z);
@@ -214,6 +242,9 @@ export default function Station({ game, act, sound }: { game: GameState; act: (a
         <h1 className="display">
           Find out what <em>really</em> happened.
         </h1>
+        <button type="button" className="st-help" onClick={onHelp}>
+          How this stage works
+        </button>
         <p className="st-lede">
           Lantern 17 is at {mirrorOutputPct(game)}% light and falling. Something is wrong with it, and the obvious answer may not be the true one. Look at each zone, pin the clues, rule out the wrong explanations, and test the right one. Every job costs hours, and the ice clock does not stop.
         </p>

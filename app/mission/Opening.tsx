@@ -1,5 +1,7 @@
 "use client";
 
+import "./opening.css";
+
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPlanetRenderer, type PlanetRenderer } from "@/app/components/heroPlanet";
 import { OPENING, TITLE_CARD, type OpeningPanel } from "@/lib/game/data/story";
@@ -264,7 +266,7 @@ function PanelView({
       <p className="ms-tag" aria-hidden="true">
         {panel.tag}
       </p>
-      <div className="ms-caption">
+      <div className="ms-op-caption">
         <p className="eyebrow">
           <b>{String(panel.n).padStart(2, "0")}</b> {"//"} {panel.caption}
         </p>

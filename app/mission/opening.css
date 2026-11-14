@@ -1,0 +1,548 @@
+/* ============================================================
+   The opening (five scenes and a title card) and the briefing terminal. Prefix ms-.
+   ============================================================ */
+.ms-opening {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #03050a;
+  overflow: hidden;
+  cursor: pointer;
+}
+.ms-panel {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.ms-art {
+  position: absolute;
+  inset: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ms-art {
+    animation: ms-push var(--zoom, 14s) linear both;
+  }
+  .ms-panel {
+    animation: ms-fade-in 1s ease-out both;
+  }
+}
+@keyframes ms-push {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.07);
+  }
+}
+@keyframes ms-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.ms-art-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.ms-art-planet {
+  position: absolute;
+  inset: 0;
+}
+.ms-art-planet canvas {
+  position: absolute;
+  display: block;
+}
+.ms-planet-fallback {
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  width: min(60vh, 56vw);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 32%, #1b2c40, #0a1220 60%, #05080f);
+}
+.ms-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 40%, transparent 45%, rgba(3, 5, 10, 0.75) 100%),
+    linear-gradient(0deg, rgba(3, 5, 10, 0.92) 0%, rgba(3, 5, 10, 0.55) 26%, transparent 52%);
+}
+.ms-tag {
+  position: absolute;
+  top: 28px;
+  right: 34px;
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: var(--amber);
+  opacity: 0.85;
+}
+.ms-op-caption {
+  position: absolute;
+  left: 34px;
+  right: 34px;
+  bottom: 86px;
+  display: grid;
+  gap: 8px;
+}
+.ms-op-caption .eyebrow {
+  margin: 0;
+}
+.ms-truth {
+  margin: 0;
+  font-size: 13px;
+  color: var(--body);
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.8s,
+    transform 0.8s;
+}
+.ms-truth.in {
+  opacity: 1;
+  transform: none;
+}
+.ms-truth span {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+}
+.ms-truth.real span {
+  color: #8fe3b0;
+  border-color: rgba(143, 227, 176, 0.45);
+}
+.ms-truth.fiction span {
+  color: #c9a2ff;
+  border-color: rgba(201, 162, 255, 0.45);
+}
+.ms-line {
+  position: absolute;
+  left: 50%;
+  bottom: 190px;
+  transform: translateX(-50%);
+  width: min(960px, 88%);
+  margin: 0;
+  text-align: center;
+  font-family: var(--serif);
+  font-size: clamp(24px, 3.4vw, 42px);
+  line-height: 1.35;
+  color: var(--frost);
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.9);
+}
+.ms-line .w {
+  opacity: 0.12;
+  transition: opacity 0.5s;
+}
+.ms-line .w.in {
+  opacity: 1;
+}
+.ms-op-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 34px 22px;
+}
+.ms-dots {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ms-dots li {
+  width: 26px;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(220, 230, 240, 0.2);
+}
+.ms-dots li.done {
+  background: rgba(255, 181, 71, 0.6);
+}
+.ms-dots li.on {
+  background: var(--amber);
+  box-shadow: 0 0 10px rgba(255, 181, 71, 0.8);
+}
+.ms-hint {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.ms-skip kbd {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(220, 230, 240, 0.3);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+.ms-title {
+  display: grid;
+  place-items: center;
+  background: radial-gradient(60% 50% at 50% 50%, rgba(255, 181, 71, 0.1), transparent 70%), #03050a;
+}
+.ms-title-inner {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  padding: 24px;
+  text-align: center;
+}
+.ms-title-name {
+  font-size: clamp(56px, 11vw, 150px);
+  margin: 6px 0;
+}
+.ms-title-line1 {
+  margin: 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(20px, 2.6vw, 32px);
+  color: var(--body);
+}
+.ms-title-line2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(24px, 3.2vw, 40px);
+  color: var(--amber);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ms-title-inner > * {
+    animation: ms-rise 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .ms-title-inner > :nth-child(2) {
+    animation-delay: 0.3s;
+  }
+  .ms-title-inner > :nth-child(3) {
+    animation-delay: 1.6s;
+  }
+  .ms-title-inner > :nth-child(4) {
+    animation-delay: 3s;
+  }
+}
+@keyframes ms-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+/* ---------- the briefing ---------- */
+.ms-brief {
+  min-height: 100vh;
+  padding: 72px 0 96px;
+  background:
+    radial-gradient(900px 500px at 80% -10%, rgba(255, 181, 71, 0.09), transparent 62%),
+    radial-gradient(800px 600px at -10% 30%, rgba(127, 212, 232, 0.07), transparent 62%),
+    var(--void);
+}
+.ms-brief-inner {
+  width: min(1240px, 100% - 40px);
+  margin-inline: auto;
+  display: grid;
+  gap: 26px;
+}
+.ms-brief-head {
+  display: grid;
+  gap: 12px;
+}
+.ms-brief-head .display {
+  font-size: clamp(42px, 6vw, 84px);
+}
+.ms-brief-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.ms-term,
+.ms-meters-card {
+  display: grid;
+  gap: 16px;
+  padding: 26px;
+  border-radius: 22px;
+  border: 1px solid rgba(220, 230, 240, 0.12);
+  background: rgba(7, 12, 22, 0.8);
+}
+.ms-term {
+  border-color: rgba(127, 212, 232, 0.3);
+  box-shadow: 0 0 60px -30px rgba(127, 212, 232, 0.5);
+}
+.ms-term-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  color: var(--dim);
+}
+.ms-term-bar i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(220, 230, 240, 0.2);
+}
+.ms-term-bar span {
+  margin-left: 8px;
+}
+.ms-term-line {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--frost);
+}
+.ms-term-line.dim {
+  color: var(--body);
+  font-size: 13.5px;
+}
+.ms-term-line b {
+  margin-right: 10px;
+  color: var(--amber);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+.ms-term-h {
+  margin: 4px 0 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.ms-unknowns,
+.ms-meters-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.ms-unknowns li {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px dashed rgba(127, 212, 232, 0.35);
+  background: rgba(127, 212, 232, 0.04);
+}
+.ms-unknowns b {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--frost);
+}
+.ms-unknowns span {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--body);
+}
+.ms-meters-card li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.ms-m-n {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 181, 71, 0.55);
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--amber);
+}
+.ms-meters-card li b {
+  display: block;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--frost);
+}
+.ms-meters-card li b small {
+  margin-left: 6px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+}
+.ms-meters-card li > div > span {
+  display: block;
+  margin-top: 3px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--body);
+}
+.ms-brief-rule {
+  margin: 6px 0 0;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(220, 230, 240, 0.16);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 22px;
+  color: var(--amber-soft);
+}
+.ms-brief-go {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 22px;
+}
+.ms-brief-go p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--dim);
+}
+.ms-brief.leaving .ms-brief-inner {
+  opacity: 0.35;
+  transition: opacity 1.4s;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ms-brief-inner > * {
+    animation: ms-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .ms-brief-inner > :nth-child(2) {
+    animation-delay: 0.15s;
+  }
+  .ms-brief-inner > :nth-child(3) {
+    animation-delay: 0.3s;
+  }
+}
+@media (max-width: 900px) {
+  .ms-brief-grid {
+    grid-template-columns: 1fr;
+  }
+  .ms-op-caption {
+    bottom: 96px;
+    left: 20px;
+    right: 20px;
+  }
+  .ms-line {
+    bottom: 200px;
+  }
+  .ms-hint {
+    display: none;
+  }
+  .ms-op-foot {
+    padding-inline: 20px;
+  }
+}
+
+/* ---------- the station briefing slide ---------- */
+.ms-brief-lede {
+  margin: 0;
+  max-width: 76ch;
+  font-size: 16.5px;
+  line-height: 1.65;
+  color: var(--body);
+}
+.ms-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.ms-steps li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 20px 20px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(220, 230, 240, 0.12);
+  background: radial-gradient(300px 120px at 0% 0%, rgba(255, 181, 71, 0.08), transparent 70%), rgba(7, 12, 22, 0.8);
+  transition:
+    transform 0.3s,
+    border-color 0.3s;
+}
+.ms-steps li:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 181, 71, 0.45);
+}
+.ms-step-n {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 181, 71, 0.6);
+  font-family: var(--serif);
+  font-size: 24px;
+  color: var(--amber);
+}
+.ms-steps b {
+  display: block;
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--frost);
+}
+.ms-steps p {
+  margin: 8px 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--body);
+}
+.ms-steps small {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ice);
+}
+.ms-stakes {
+  display: grid;
+  gap: 10px;
+  padding: 18px 22px;
+  border-radius: 18px;
+  border: 1px dashed rgba(127, 212, 232, 0.35);
+}
+.ms-stakes ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 26px;
+}
+.ms-stakes li b {
+  font-weight: 500;
+  color: var(--amber-soft);
+  margin-right: 6px;
+}
+.ms-stakes li span {
+  font-size: 13.5px;
+  color: var(--body);
+}
+@media (max-width: 1100px) {
+  .ms-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .ms-steps {
+    grid-template-columns: 1fr;
+  }
+}

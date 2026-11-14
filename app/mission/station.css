@@ -1090,3 +1090,24 @@
   right: 0;
   transform: none;
 }
+
+.st-head {
+  position: relative;
+}
+.st-help {
+  justify-self: start;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+  background: transparent;
+  border: 1px solid rgba(255, 181, 71, 0.4);
+  border-radius: 999px;
+  padding: 7px 14px;
+  min-height: 34px;
+  cursor: pointer;
+}
+.st-help:hover {
+  background: rgba(255, 181, 71, 0.08);
+}

@@ -18,11 +18,14 @@ import type { Action, GameState } from "@/lib/game";
 import { CREDITS_VOICE, DISCLAIMER, ONE_RULE, type VoiceLine } from "@/lib/game/data/story";
 import { Sound, playLine, saveSettings, type LineHandle, type Settings } from "./audio";
 import Result from "../lab/Result";
+import Briefing from "./Briefing";
 import Decision from "./Decision";
 import Hangar from "./Hangar";
+import Opening from "./Opening";
 import Journey from "./Journey";
 import Route from "./Route";
 import Station from "./Station";
+import StationBrief from "./StationBrief";
 import { actionsTo } from "./shortcut";
 
 // ───────────────────────────── saved runs ─────────────────────────────
@@ -224,7 +227,7 @@ function Gate({
         </div>
         <Toggles settings={settings} set={set} />
         <p className="ms-gate-skip">
-          Reviewing? <button type="button" onClick={onSkip}>Skip ahead to the station</button>. The ship is built and flown for you, through the same rules.
+          Reviewing? <button type="button" onClick={onSkip}>Skip ahead to the station</button> for a two-minute tour of the survey, the clues, the test and the big choice. The ship is built and flown for you, through the same rules.
         </p>
         <p className="ms-gate-small">Best with sound. Both switches can be changed at any time.</p>
         <p className="ms-gate-fine">
@@ -286,6 +289,10 @@ export default function Mission() {
   const [caption, setCaption] = useState<{ text: string; who: string } | null>(null);
   // after docking, the player chooses when to start work at the station
   const [working, setWorking] = useState(false);
+  // the slide that explains the station, shown when work begins and again on request
+  const [stationBrief, setStationBrief] = useState(false);
+  // the opening and the briefing come before the hangar, on a fresh start only
+  const [intro, setIntro] = useState<"opening" | "briefing" | null>(null);
 
   // sound follows the switch
   useEffect(() => {
@@ -378,6 +385,8 @@ export default function Mission() {
     const start = replay(seed, [{ type: "begin" }]);
     commit({ v: 1, seed, actions: [{ type: "begin" }] }, start.state);
     setWorking(false);
+    setStationBrief(false);
+    setIntro("opening");
     setPlaying(true);
   };
 
@@ -393,6 +402,8 @@ export default function Mission() {
       const { actions, state } = actionsTo(seed, target);
       commit({ v: 1, seed, actions }, state);
       setWorking(target === "station");
+      setStationBrief(target === "station");
+      setIntro(null);
       setPlaying(true);
     },
     [commit, sound, settings.sound],
@@ -405,6 +416,8 @@ export default function Mission() {
     sound.swell(110);
     commit(saved, replay(saved.seed, saved.actions).state);
     setWorking(false);
+    setStationBrief(false);
+    setIntro(null);
     setPlaying(true);
   };
 
@@ -413,6 +426,7 @@ export default function Mission() {
     const seed = newSeed();
     commit({ v: 1, seed, actions: [{ type: "begin" }] }, replay(seed, [{ type: "begin" }]).state);
     setWorking(false);
+    setStationBrief(false);
   };
 
   const label =
@@ -440,6 +454,29 @@ export default function Mission() {
     );
   }
 
+  if (intro === "opening") {
+    return (
+      <div className="ms">
+        <Opening sound={sound} settings={settings} onDone={() => setIntro("briefing")} onSkip={() => setIntro("briefing")} />
+      </div>
+    );
+  }
+
+  if (intro === "briefing") {
+    return (
+      <div className="ms">
+        <Briefing sound={sound} say={say} onAccept={() => setIntro(null)} />
+        <div className={`ms-caption${caption ? " on" : ""}`} aria-live="polite">
+          {caption && (
+            <p>
+              <b>{caption.who}</b> {caption.text}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="ms">
       <a className="skip" href="#main">
@@ -455,11 +492,16 @@ export default function Mission() {
           ) : game.phase === "route" ? (
             <Route game={game} act={act} sound={sound} say={say} />
           ) : game.phase === "choice" || game.phase === "endgame" ? (
-            <Decision game={game} act={act} sound={sound} />
+            <Decision game={game} act={act} sound={sound} say={say} />
+          ) : game.phase === "station" && working && stationBrief ? (
+            <StationBrief say={say} resuming={game.surveyed} onBegin={() => setStationBrief(false)} />
           ) : game.phase === "station" && working ? (
-            <Station game={game} act={act} sound={sound} />
+            <Station game={game} act={act} sound={sound} say={say} onHelp={() => setStationBrief(true)} />
           ) : (
-            <Journey game={game} act={act} sound={sound} say={say} onRebuild={rebuild} onWork={() => setWorking(true)} />
+            <Journey game={game} act={act} sound={sound} say={say} onRebuild={rebuild} onWork={() => {
+                setWorking(true);
+                setStationBrief(true);
+              }} />
           )}
         </main>
       )}
