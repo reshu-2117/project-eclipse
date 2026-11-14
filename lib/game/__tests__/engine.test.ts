@@ -207,6 +207,14 @@ describe("endings", () => {
     expect(d.ledger.length).toBeGreaterThan(10);
     expect(dvLeft(r.state)).toBeGreaterThan(0);
   });
+  it("the impact hour is written to the ledger exactly once, in its place in time", () => {
+    for (const st of STRATEGIES) {
+      const r = runPolicy(3, st.policy);
+      const hits = r.state.log.filter((e) => e.title === "Impact hour");
+      expect(hits).toHaveLength(1);
+      expect(hits[0].t).toBeCloseTo(CLOCKS.iceTrueH, 1);
+    }
+  });
   it("arriving by the safe route is too late to save the station, even when believed", () => {
     const r = runPolicy(1, STRATEGIES.find((s) => s.id === "safe-scientist")!.policy);
     expect(r.state.outcome?.believed).toBe(true);

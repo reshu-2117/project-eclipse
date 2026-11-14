@@ -102,6 +102,7 @@ export function createGame(seed = 1): GameState {
     test: null,
     iceRevealed: false,
     iceRevealedBy: null,
+    impactLogged: false,
     choice: null,
     choiceT: null,
     mustBroadcast: false,
@@ -432,6 +433,8 @@ function advance(s: GameState, hours: number, opts: AdvanceOpts = {}) {
 
 /** The moment the ice arrives, written into the ledger in its true place in time. */
 function logImpact(s: GameState) {
+  if (s.impactLogged) return;
+  s.impactLogged = true;
   const lostBy = !s.reactorOnline ? "reactor" : s.ice.shiftKm < 1.5 ? "ice" : null;
   log(
     s,

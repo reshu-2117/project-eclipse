@@ -167,6 +167,8 @@ export interface GameState {
   test: TestResult | null;
   iceRevealed: boolean;
   iceRevealedBy: "radar" | "director" | null;
+  /** The impact hour has been written to the ledger (it must appear exactly once). */
+  impactLogged: boolean;
 
   // Decision and endgame
   choice: ChoiceId | null;
