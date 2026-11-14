@@ -4,11 +4,9 @@ import "./lab.css";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ENDING_ORDER, EVENT_IDS, ROUTE_ORDER, STRATEGIES } from "@/lib/game";
-import PlanetCanvas from "../components/PlanetCanvas";
-import type { PlanetLight } from "../components/heroPlanet";
+import LanternNetwork, { type L17State } from "../components/LanternNetwork";
 import { useReducedMotion } from "../mission/Opening";
 import { Crews, Endings } from "./Crews";
-import Playground from "./Playground";
 import Proofs, { useProofs } from "./Proofs";
 import Rules from "./Rules";
 import Ships from "./Ships";
@@ -17,24 +15,27 @@ import { computeTally, type Tally } from "./tally";
 
 const SECTIONS: [string, string][] = [
   ["proofs", "Proofs"],
-  ["rocket", "Rocket equation"],
   ["ships", "Ships"],
   ["crews", "Crews"],
   ["endings", "Endings"],
   ["rules", "Rules"],
 ];
 
-/** Lanterns pooled around Eclipse-01, so the planet is lit the way it is on the home page. */
-const LIGHTS: PlanetLight[] = Array.from({ length: 18 }, (_, i) => {
-  const a = i * 2.399963;
-  return { x: Math.cos(a) * 1.36, y: Math.sin(a) * 1.36, z: 0.6 + 0.8 * Math.sin(i * 1.7 + 0.5), power: 0.21, color: [1.0, 0.58, 0.25] as const };
-});
+/** The phases the network goes through in the game, so the hero can show each one. */
+const PHASES: { id: string; label: string; note: string; l17: L17State; eclipse: boolean }[] = [
+  { id: "day", label: "Failing", note: "Lantern 17's collector is cracked: light output 61% and falling. The other 23 Lanterns work.", l17: "failing", eclipse: false },
+  { id: "eclipse", label: "Eclipse", note: "Every six hours the whole network dims for six hours. Comms slow to a quarter and the mirrors cool.", l17: "failing", eclipse: true },
+  { id: "dark", label: "Dark", note: "If you fail, Lantern 17 goes out and the cities it feeds go dark with it.", l17: "dark", eclipse: false },
+  { id: "lit", label: "Restored", note: "If you repair it and move the ice, Lantern 17 comes back and the whole network is whole again.", l17: "lit", eclipse: false },
+];
 
 export default function Lab() {
   const reduce = useReducedMotion();
   const proofs = useProofs();
   const [tally, setTally] = useState<Tally | null>(null);
   const [active, setActive] = useState("proofs");
+  const [phase, setPhase] = useState(0);
+  const ph = PHASES[phase];
 
   // working out how every crew fares on several decks takes a moment, so the page paints first
   useEffect(() => {
@@ -105,10 +106,20 @@ export default function Lab() {
               </a>
             </div>
           </div>
-          <div className="lb-hero-planet" aria-hidden="true">
-            <PlanetCanvas lights={LIGHTS} reduce={reduce} elevation={0.3} spinRate={0.05} className="lb-planet" />
+          <div className="lb-hero-planet">
+            <LanternNetwork l17={ph.l17} eclipse={ph.eclipse} reduce={reduce} className="lb-net" />
+            <div className="lb-phases" role="group" aria-label="Network phase">
+              {PHASES.map((x, i) => (
+                <button key={x.id} type="button" className={i === phase ? "on" : ""} aria-pressed={i === phase} onClick={() => setPhase(i)}>
+                  {x.label}
+                </button>
+              ))}
+            </div>
+            <p className="lb-phase-note" aria-live="polite">
+              {ph.note}
+            </p>
             <p className="lb-planet-tag">
-              ECLIPSE-01 · ROGUE PLANET <b>·</b> NO STAR <b>·</b> {ROUTE_ORDER.length} ROUTES TO LANTERN 17
+              ECLIPSE-01 · 24 LANTERNS <b>·</b> NO STAR <b>·</b> {ROUTE_ORDER.length} ROUTES TO LANTERN 17
             </p>
           </div>
         </section>
@@ -123,7 +134,6 @@ export default function Lab() {
         </ul>
 
         <Proofs />
-        <Playground />
         <Ships />
         <Crews tally={tally} />
         <Endings tally={tally} />

@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { RouteId } from "@/lib/game";
-import PlanetCanvas from "../components/PlanetCanvas";
-import type { PlanetLight } from "../components/heroPlanet";
+import LanternNetwork, { type L17State } from "../components/LanternNetwork";
 import { useReducedMotion } from "./Opening";
 
 /**
@@ -95,22 +94,17 @@ function buildPaths(): Record<RouteId, Path> {
   };
 }
 
-/**
- * The warm lights that make the planet look like the home page's: Lanterns pooled around it. They are only for
- * the planet's shading; the Wick and Lantern 17 are drawn by the map itself.
- */
-const MAP_LIGHTS: PlanetLight[] = Array.from({ length: 12 }, (_, i) => {
-  const a = (i / 12) * Math.PI * 2 + 0.4;
-  // like the home page: Lanterns about 1.4 planet radii out, some in front of the planet and some behind its limb
-  return { x: Math.cos(a) * 1.38, y: Math.sin(a) * 1.38, z: 1.05 * Math.sin(a * 1.3 + 0.4), power: 0.16, color: [1.0, 0.58, 0.25] as const };
-});
-
+/** The stage the Lantern network is drawn on: its rings are Lantern 17's orbit, so it spans a little more than that. */
+const NET_SIZE = R_L17 * 2 * 1.04;
 export default function FlightMap({
   route,
   hover,
   progress,
   loop,
   caption,
+  l17 = "failing",
+  eclipse = false,
+  phase,
 }: {
   route: RouteId | null;
   hover?: RouteId | null;
@@ -119,6 +113,11 @@ export default function FlightMap({
   /** keep the ship moving along the route, for the preview */
   loop?: boolean;
   caption?: string;
+  /** the network's phase: Lantern 17's state, and whether the Eclipse has dimmed everything */
+  l17?: L17State;
+  eclipse?: boolean;
+  /** a short label for the phase, drawn on the map */
+  phase?: string;
 }) {
   const reduce = useReducedMotion();
   const paths = useMemo(() => buildPaths(), []);
@@ -179,7 +178,7 @@ export default function FlightMap({
       const w = el.clientWidth;
       const h = el.clientHeight;
       const k = Math.min(w / 640, h / 420);
-      const size = R_PLANET * 2 * 1.25 * k;
+      const size = NET_SIZE * k;
       setBox({ left: (w - 640 * k) / 2 + C.x * k - size / 2, top: (h - 420 * k) / 2 + C.y * k - size / 2, size });
     };
     place();
@@ -195,7 +194,15 @@ export default function FlightMap({
     <div className="fm-wrap" ref={wrapRef}>
       {box && (
         <div className="fm-planet" style={{ left: box.left, top: box.top, width: box.size, height: box.size }}>
-          <PlanetCanvas lights={MAP_LIGHTS} reduce={reduce} elevation={0.3} spinRate={0.05} />
+          <LanternNetwork
+            l17={l17}
+            eclipse={eclipse}
+            reduce={reduce}
+            ringRadius={R_L17 / NET_SIZE}
+            planetRadius={R_PLANET / NET_SIZE}
+            calm={1}
+            hideTarget
+          />
         </div>
       )}
     <svg className="fm" viewBox="0 0 640 420" role="img" aria-label={caption ?? "Flight map from the Wick at 300 km to Lantern 17 at 1,000 km"}>
@@ -251,6 +258,11 @@ export default function FlightMap({
         </g>
       )}
 
+      {phase && (
+        <text x="22" y="30" className={`fm-text${eclipse ? " ice" : " amber"}`}>
+          {phase.toUpperCase()}
+        </text>
+      )}
       <text x="22" y="404" className="fm-text">
         SCHEMATIC · NOT TO SCALE
       </text>

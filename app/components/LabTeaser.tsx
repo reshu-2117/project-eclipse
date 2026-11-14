@@ -20,8 +20,8 @@ export default function LabTeaser() {
           </h2>
           <p className="lede">
             Before the screens come the rules. The Mission Lab runs the real engine in your browser: the rocket
-            equation, five routes, eight event cards, Lantern 17&apos;s six zones and every ending. Build a ship and
-            watch the numbers move, or watch nine crews fly whole missions.
+            equation, five routes, eight event cards, Lantern 17&apos;s six zones and every ending. Check every ship
+            against every route, or watch nine crews fly whole missions.
           </p>
         </div>
         <div className="lt-stats reveal">

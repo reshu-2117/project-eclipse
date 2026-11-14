@@ -112,22 +112,53 @@
 }
 .lb-hero-planet {
   position: relative;
-  aspect-ratio: 1;
-  width: min(100%, 560px);
+  width: min(100%, 580px);
   margin-inline: auto;
 }
-.lb-planet {
+.lb-net {
   display: block;
-  width: 100%;
-  height: 100%;
-  -webkit-mask-image: radial-gradient(circle closest-side, #000 84%, transparent 100%);
-  mask-image: radial-gradient(circle closest-side, #000 84%, transparent 100%);
+}
+.lb-phases {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.lb-phases button {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 8px 14px;
+  min-height: 36px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.lb-phases button:hover {
+  color: var(--frost);
+  border-color: rgba(255, 181, 71, 0.5);
+}
+.lb-phases button.on {
+  color: var(--amber);
+  border-color: var(--amber);
+  background: rgba(255, 181, 71, 0.08);
+}
+.lb-phase-note {
+  margin: 12px auto 0;
+  max-width: 46ch;
+  min-height: 3.2em;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--body);
 }
 .lb-planet-tag {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 2%;
+  margin-top: 10px;
   text-align: center;
   font-family: var(--mono);
   font-size: 10.5px;
@@ -266,210 +297,6 @@
   font-size: 13px;
   line-height: 1.55;
   color: var(--body);
-}
-
-/* ---------- the rocket equation ---------- */
-.lb-play {
-  display: grid;
-  grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
-  gap: 24px;
-  align-items: start;
-}
-.lb-controls {
-  display: grid;
-  gap: 22px;
-  padding: 22px;
-  border-radius: 18px;
-  border: 1px solid rgba(220, 230, 240, 0.1);
-  background: rgba(11, 18, 32, 0.6);
-}
-.lb-controls label {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px 12px;
-  align-items: baseline;
-}
-.lb-controls label > span {
-  font-size: 14px;
-  color: var(--frost);
-}
-.lb-controls label small {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.1em;
-  color: var(--dim);
-  margin-left: 6px;
-}
-.lb-controls label b {
-  font-family: var(--mono);
-  font-weight: 500;
-  font-size: 16px;
-  color: var(--amber);
-  font-variant-numeric: tabular-nums;
-}
-.lb-controls input[type="range"] {
-  grid-column: 1 / -1;
-  width: 100%;
-  accent-color: var(--amber);
-}
-.lb-controls em {
-  grid-column: 1 / -1;
-  font-style: normal;
-  font-size: 11.5px;
-  color: var(--dim);
-}
-.lb-read {
-  display: grid;
-  gap: 10px;
-  padding-top: 18px;
-  border-top: 1px solid rgba(220, 230, 240, 0.1);
-}
-.lb-read > div {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: baseline;
-  gap: 2px 8px;
-}
-.lb-read small {
-  grid-column: 1 / -1;
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--dim);
-}
-.lb-read > div b {
-  font-family: var(--mono);
-  font-size: 54px;
-  font-weight: 400;
-  line-height: 1;
-  color: var(--amber);
-  font-variant-numeric: tabular-nums;
-}
-.lb-read > div span {
-  font-family: var(--mono);
-  color: var(--dim);
-}
-.lb-read p {
-  font-size: 13.5px;
-  line-height: 1.6;
-  color: var(--body);
-}
-.lb-read p b {
-  font-family: var(--mono);
-  font-weight: 500;
-  color: var(--frost);
-}
-.lb-chart {
-  padding: 18px;
-  border-radius: 18px;
-  border: 1px solid rgba(127, 212, 232, 0.2);
-  background: radial-gradient(700px 300px at 50% 40%, rgba(127, 212, 232, 0.06), transparent 70%), rgba(5, 10, 18, 0.85);
-}
-.lb-chart svg {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-.lb-grid {
-  stroke: rgba(127, 212, 232, 0.08);
-}
-.lb-axis {
-  font-family: var(--mono);
-  font-size: 10px;
-  fill: var(--dim);
-}
-.lb-axis-title {
-  letter-spacing: 0.14em;
-}
-.lb-linear {
-  fill: none;
-  stroke: rgba(127, 212, 232, 0.45);
-  stroke-width: 1.4;
-  stroke-dasharray: 5 5;
-}
-.lb-curve {
-  fill: none;
-  stroke: var(--amber);
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  filter: drop-shadow(0 0 5px rgba(255, 181, 71, 0.55));
-}
-.lb-need {
-  stroke-width: 1.2;
-  stroke-dasharray: 2 5;
-}
-g.ok .lb-need {
-  stroke: rgba(143, 227, 176, 0.55);
-}
-g.no .lb-need {
-  stroke: rgba(255, 106, 43, 0.5);
-}
-g.ok .lb-need-dot {
-  fill: #0b1d17;
-  stroke: #8fe3b0;
-}
-g.no .lb-need-dot {
-  fill: #20100a;
-  stroke: var(--ember);
-}
-.lb-need-dot {
-  stroke-width: 1.2;
-}
-.lb-need-n {
-  font-family: var(--mono);
-  font-size: 9px;
-  fill: var(--frost);
-}
-.lb-here-line {
-  stroke: rgba(255, 181, 71, 0.45);
-  stroke-dasharray: 3 4;
-}
-.lb-here {
-  fill: var(--amber);
-  stroke: #1a1003;
-  stroke-width: 2;
-  filter: drop-shadow(0 0 8px var(--amber));
-}
-.lb-chart figcaption {
-  display: grid;
-  gap: 10px;
-  margin-top: 8px;
-}
-.lb-chart ol {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 16px;
-  font-size: 12.5px;
-  color: var(--dim);
-}
-.lb-chart ol li span {
-  display: inline-grid;
-  place-items: center;
-  width: 17px;
-  height: 17px;
-  margin-right: 4px;
-  border-radius: 50%;
-  border: 1px solid var(--ember);
-  font-family: var(--mono);
-  font-size: 9.5px;
-  color: var(--frost);
-}
-.lb-chart ol li.ok span {
-  border-color: #8fe3b0;
-}
-.lb-chart ol li b {
-  font-family: var(--mono);
-  font-weight: 500;
-  color: var(--frost);
-}
-.lb-chart figcaption p {
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: var(--dim);
 }
 
 /* ---------- ships against routes ---------- */
@@ -937,9 +764,8 @@ g.no .lb-need-dot {
   }
   .lb-hero-planet {
     order: -1;
-    width: min(76%, 380px);
+    width: min(94%, 460px);
   }
-  .lb-play,
   .lb-crew-layout {
     grid-template-columns: 1fr;
   }
@@ -950,6 +776,14 @@ g.no .lb-need-dot {
   }
 }
 @media (max-width: 600px) {
+  .lb-phases {
+    gap: 4px;
+  }
+  .lb-phases button {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 8px 9px;
+  }
   .lb-hide-sm {
     display: none;
   }

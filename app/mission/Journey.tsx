@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { CLOCKS, ECLIPSE, EVENTS, ROUTES, dvLeft, iceClock, options } from "@/lib/game";
+import { CLOCKS, ECLIPSE, EVENTS, ROUTES, dvLeft, iceClock, isEclipse, options } from "@/lib/game";
 import type { Action, Delta, EventId, GameState, LedgerEntry } from "@/lib/game";
 import { ARRIVE, DISTRESS, type VoiceLine } from "@/lib/game/data/story";
 import CardArt from "./CardArt";
@@ -161,7 +161,13 @@ export default function Journey({
       <div className="jn-grid">
         <div className="jn-left">
           <div className="rt-map">
-            <FlightMap route={game.route} progress={progress} caption="Your ship on its way to Lantern 17" />
+            <FlightMap
+              route={game.route}
+              progress={progress}
+              eclipse={isEclipse(game.t)}
+              phase={isEclipse(game.t) ? `Hour ${r1(game.t)}: the Eclipse has dimmed the network` : `Hour ${r1(game.t)}: daylight, Lantern 17 failing`}
+              caption="Your ship on its way to Lantern 17"
+            />
           </div>
           <ol className="jn-pips" aria-label="Events on this flight">
             {game.deck.map((id, i) => {

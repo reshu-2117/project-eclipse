@@ -147,7 +147,15 @@ export default function Route({
 
         <div className="rt-right">
           <div className="rt-map">
-            <FlightMap route={showing} hover={hover} progress={1} loop caption={`Flight map for the ${route.name} route`} />
+            <FlightMap
+              route={showing}
+              hover={hover}
+              progress={1}
+              loop
+              eclipse={eclipseAtArrival}
+              phase={eclipseAtArrival ? "Network at arrival: Eclipse, dimmed" : "Network at arrival: daylight, Lantern 17 failing"}
+              caption={`Flight map for the ${route.name} route`}
+            />
           </div>
 
           <section className="rt-detail" aria-live="polite">
