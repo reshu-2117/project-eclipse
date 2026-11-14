@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CLOCKS, ECLIPSE, EVENTS, ROUTES, dvLeft, iceClock, isEclipse, options } from "@/lib/game";
 import type { Action, Delta, EventId, GameState, LedgerEntry } from "@/lib/game";
@@ -72,14 +73,12 @@ export default function Journey({
   sound,
   say,
   onRebuild,
-  onWork,
 }: {
   game: GameState;
   act: (a: Action) => string | null;
   sound: Sound;
   say: (line: VoiceLine) => void;
   onRebuild: () => void;
-  onWork: () => void;
 }) {
   const n = game.deck.length;
   const [pending, setPending] = useState<Pending | null>(null);
@@ -284,12 +283,12 @@ export default function Journey({
                   </li>
                 </ul>
                 <p className="ms-gate-fine">
-                  Lantern 17 is failing, and the obvious reason may not be the true one. From here every job costs hours, and the ice clock keeps running.
+                  Next is the <b>Station Mission</b>: a short guided part of the game on its own page. You will look around the station, search it for clues, fix what is broken, prove what really happened, warn the other Lanterns, and make one big decision. It takes about five minutes, and a coach tells you what to do next.
                 </p>
                 <div className="ms-gate-actions">
-                  <button type="button" className="btn btn-lantern" onClick={onWork}>
-                    Start work at the station <span aria-hidden="true">→</span>
-                  </button>
+                  <Link href="/station" className="btn btn-lantern">
+                    {game.phase === "station" ? "Start the Station Mission" : "Continue the Station Mission"} <span aria-hidden="true">→</span>
+                  </Link>
                   <button type="button" className="btn btn-ghost" onClick={onRebuild}>
                     Build a different ship
                   </button>

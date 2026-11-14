@@ -19,14 +19,10 @@ import { CREDITS_VOICE, DISCLAIMER, ONE_RULE, type VoiceLine } from "@/lib/game/
 import { Sound, playLine, saveSettings, type LineHandle, type Settings } from "./audio";
 import Result from "../lab/Result";
 import Briefing from "./Briefing";
-import Decision from "./Decision";
 import Hangar from "./Hangar";
 import Opening from "./Opening";
 import Journey from "./Journey";
 import Route from "./Route";
-import Station from "./Station";
-import StationBrief from "./StationBrief";
-import { actionsTo } from "./shortcut";
 
 // ───────────────────────────── saved runs ─────────────────────────────
 
@@ -193,14 +189,12 @@ function Gate({
   canContinue,
   onBegin,
   onContinue,
-  onSkip,
 }: {
   settings: Settings;
   set: (s: Settings) => void;
   canContinue: boolean;
   onBegin: () => void;
   onContinue: () => void;
-  onSkip: () => void;
 }) {
   return (
     <main className="ms-gate" id="main">
@@ -227,7 +221,7 @@ function Gate({
         </div>
         <Toggles settings={settings} set={set} />
         <p className="ms-gate-skip">
-          Reviewing? <button type="button" onClick={onSkip}>Skip ahead to the station</button> for a two-minute tour of the survey, the clues, the test and the big choice. The ship is built and flown for you, through the same rules.
+          Reviewing? <Link href="/station?demo=1">Jump to the Station Mission</Link>, a short guided part of the game that happens after you reach Lantern 17. A ship is built and flown for you.
         </p>
         <p className="ms-gate-small">Best with sound. Both switches can be changed at any time.</p>
         <p className="ms-gate-fine">
@@ -287,10 +281,6 @@ export default function Mission() {
   const gameRef = useRef<GameState>(createGame(1));
   const game = useMemo(() => replay(run.seed, run.actions).state, [run]);
   const [caption, setCaption] = useState<{ text: string; who: string } | null>(null);
-  // after docking, the player chooses when to start work at the station
-  const [working, setWorking] = useState(false);
-  // the slide that explains the station, shown when work begins and again on request
-  const [stationBrief, setStationBrief] = useState(false);
   // the opening and the briefing come before the hangar, on a fresh start only
   const [intro, setIntro] = useState<"opening" | "briefing" | null>(null);
 
@@ -384,30 +374,9 @@ export default function Mission() {
     const seed = newSeed();
     const start = replay(seed, [{ type: "begin" }]);
     commit({ v: 1, seed, actions: [{ type: "begin" }] }, start.state);
-    setWorking(false);
-    setStationBrief(false);
     setIntro("opening");
     setPlaying(true);
   };
-
-  /** Jump to the station (or, with ?start=choice, to the big choice) on a ship and route chosen for the reviewer. */
-  const skip = useCallback(
-    (target: "station" | "choice" = "station") => {
-      sound.unlock();
-      sound.setEnabled(settings.sound);
-      sound.swell(110);
-      said.current.clear();
-      const q = Number(new URLSearchParams(window.location.search).get("seed"));
-      const seed = Number.isFinite(q) && q > 0 ? Math.floor(q) : (Date.now() % 900000) + 1;
-      const { actions, state } = actionsTo(seed, target);
-      commit({ v: 1, seed, actions }, state);
-      setWorking(target === "station");
-      setStationBrief(target === "station");
-      setIntro(null);
-      setPlaying(true);
-    },
-    [commit, sound, settings.sound],
-  );
 
   const resume = () => {
     if (!saved) return begin();
@@ -415,8 +384,6 @@ export default function Mission() {
     sound.setEnabled(settings.sound);
     sound.swell(110);
     commit(saved, replay(saved.seed, saved.actions).state);
-    setWorking(false);
-    setStationBrief(false);
     setIntro(null);
     setPlaying(true);
   };
@@ -425,8 +392,6 @@ export default function Mission() {
     said.current.clear();
     const seed = newSeed();
     commit({ v: 1, seed, actions: [{ type: "begin" }] }, replay(seed, [{ type: "begin" }]).state);
-    setWorking(false);
-    setStationBrief(false);
   };
 
   const label =
@@ -436,20 +401,14 @@ export default function Mission() {
         ? "LAUNCH GANTRY · CHOOSE A ROUTE"
         : game.phase === "journey"
           ? "EN ROUTE TO LANTERN 17"
-          : game.phase === "station"
-            ? working
-              ? "LANTERN 17 · WORKING"
-              : "LANTERN 17 · DOCKED"
-            : game.phase === "choice"
-              ? "LANTERN 17 · THE BIG CHOICE"
-              : game.phase === "endgame"
-                ? "LANTERN 17 · HOLDING"
-                : "MISSION OVER";
+          : game.phase === "station" || game.phase === "choice" || game.phase === "endgame"
+            ? "LANTERN 17 · DOCKED"
+            : "MISSION OVER";
 
   if (!playing) {
     return (
       <div className="ms">
-        <Gate settings={settings} set={setSettings} canContinue={!!saved} onBegin={begin} onContinue={resume} onSkip={() => skip("station")} />
+        <Gate settings={settings} set={setSettings} canContinue={!!saved} onBegin={begin} onContinue={resume} />
       </div>
     );
   }
@@ -491,17 +450,8 @@ export default function Mission() {
             <Hangar game={game} act={act} sound={sound} say={say} />
           ) : game.phase === "route" ? (
             <Route game={game} act={act} sound={sound} say={say} />
-          ) : game.phase === "choice" || game.phase === "endgame" ? (
-            <Decision game={game} act={act} sound={sound} say={say} />
-          ) : game.phase === "station" && working && stationBrief ? (
-            <StationBrief say={say} resuming={game.surveyed} onBegin={() => setStationBrief(false)} />
-          ) : game.phase === "station" && working ? (
-            <Station game={game} act={act} sound={sound} say={say} onHelp={() => setStationBrief(true)} />
           ) : (
-            <Journey game={game} act={act} sound={sound} say={say} onRebuild={rebuild} onWork={() => {
-                setWorking(true);
-                setStationBrief(true);
-              }} />
+            <Journey game={game} act={act} sound={sound} say={say} onRebuild={rebuild} />
           )}
         </main>
       )}

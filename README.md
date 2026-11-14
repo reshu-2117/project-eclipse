@@ -61,7 +61,7 @@ Design decisions made in Chunk 0 (where the handbook left a gap):
 
 Tests: `npm test` (59 tests). They re-derive every handbook number, check the rules, and play scripted crews to prove that all 8 endings can be reached.
 
-**The mission:** `/mission` is playable end to end: build a ship at the Wick, choose a route, fly three event cards, work at Lantern 17 (survey, inspect, repair, pin clues, rule out explanations, run the test, send your packet), make the big choice, hold or leave, and read the debrief.
+**The mission:** `/mission` is playable end to end: build a ship at the Wick, choose a route, fly three event cards, then continue on the Station Mission page (`/station`): look around, investigate, fix problems, prove it, tell the world, make the big decision, hold or leave, and read the debrief. The Station Mission is written in plain words for teenagers, with a coach that tells you the next move.
 
 **Mission Lab:** `/lab` is the proof page. It re-derives ten handbook numbers with the engine, checks every ship against every route, and lets you watch nine scripted crews fly whole missions to all eight endings. The Lab hero and the game's flight map use the same Lantern network and planet as the home page, and show it in the phase the mission is in: failing, in the Eclipse, dark, or restored.
 
