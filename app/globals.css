@@ -430,6 +430,21 @@ a {
     inset -22px -10px 60px rgba(127, 212, 232, 0.22),
     inset 12px 10px 50px rgba(255, 181, 71, 0.1);
 }
+/* The shader planet, lit by the Lanterns. It replaces the CSS planet once it has drawn its first frame. */
+.planet-gl {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+.stage.gl-planet .planet-gl { opacity: 1; }
+/* the CSS planet stays underneath (the shader disc is opaque), paused so it costs nothing */
+.stage.gl-planet .planet {
+  animation-play-state: paused;
+  box-shadow: 0 0 140px rgba(255, 181, 71, calc(var(--warmth) * 0.18));
+  transition: box-shadow 0.8s ease;
+}
 .planet-label {
   position: absolute;
   z-index: 7;

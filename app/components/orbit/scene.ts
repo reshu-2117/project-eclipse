@@ -4,9 +4,12 @@
  * Scene units: 1 unit = 1,000 km. The model frame is z-up (planet spin axis); Three.js is y-up, so a
  * model point (x, y, z) km is drawn at (x, z, -y) / 1000.
  *
- * Light: Eclipse-01 has no sun. The only strong light sources are the Lanterns, so Lantern 17 and a
- * few online neighbours are point lights, over a faint ice-blue fill. Relighting Lantern 17 ramps its
- * light up and warms the planet's rim.
+ * Light: Eclipse-01 has no sun. The Lanterns are the only real light sources, so every Lantern is a
+ * point light with inverse-square falloff, flying a few thousand km over the surface. Each one throws a
+ * warm pool of light onto the ice below it, and the glazed ice reflects it back as a specular glint.
+ * Everything else is a faint cold starlight rim. Damaged Lanterns flicker at reduced output; Lantern 17
+ * is a dying ember until the repair relights it. On desktop an HDR bloom pass lets the bright Lantern
+ * cores bleed light the way a camera sensor does.
  */
 
 import {
@@ -36,6 +39,7 @@ import {
   Matrix4,
   Mesh,
   MeshBasicMaterial,
+  MeshPhysicalMaterial,
   MeshStandardMaterial,
   OctahedronGeometry,
   PerspectiveCamera,
@@ -52,6 +56,7 @@ import {
   SRGBColorSpace,
   TextureLoader,
   TorusGeometry,
+  Vector2,
   Vector3,
   WebGLRenderer,
   type Material,
@@ -60,6 +65,10 @@ import {
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import {
   HERO_ID,
   PLANET_RADIUS_KM,
@@ -257,7 +266,7 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
   let pixelRatio = Math.min(window.devicePixelRatio || 1, maxDpr);
   renderer.setPixelRatio(pixelRatio);
   renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.15;
+  renderer.toneMappingExposure = 1.05;
   renderer.setClearColor(0x05070b, 1);
   const canvas = renderer.domElement;
   canvas.className = "orbit-canvas-el";
@@ -270,7 +279,19 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
 
   const scene = new Scene();
   scene.background = new Color(0x05070b);
-  const camera = new PerspectiveCamera(42, 1, 0.05, 400);
+  const camera = new PerspectiveCamera(42, 1, 0.02, 400);
+
+  // HDR bloom (desktop): only the brightest things, the Lantern cores and their halos, bleed light.
+  // Tone mapping and sRGB conversion then happen once, in the output pass.
+  let composer: EffectComposer | null = null;
+  let bloom: UnrealBloomPass | null = null;
+  if (!compact) {
+    composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    bloom = new UnrealBloomPass(new Vector2(1, 1), 0.5, 0.32, 0.88);
+    composer.addPass(bloom);
+    composer.addPass(new OutputPass());
+  }
 
   /* ---- bodies in play ---- */
   const debrisLimit = compact ? 24 : 40;
@@ -327,7 +348,7 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
     t.colorSpace = SRGBColorSpace;
     t.mapping = EquirectangularReflectionMapping;
     scene.background = t;
-    scene.backgroundIntensity = 0.6;
+    scene.backgroundIntensity = 0.3;
     disposables.push(t);
   });
   const glowTex = track(glowTexture());
@@ -335,15 +356,23 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
   /* ---- planet ---- */
   const planet = new Group();
   scene.add(planet);
+  // Ice, not rock: fairly smooth with a glossy glaze (desktop) so Lantern light comes back as a glint, and the
+  // surface texture doubles as relief so cracks and ridges catch the light at the edge of each pool. A faint
+  // self-glow keeps the night side from going to flat black.
+  const planetParams = {
+    map: planetMap,
+    bumpMap: planetMap,
+    bumpScale: 2.2,
+    roughness: 0.6,
+    metalness: 0,
+    emissive: new Color("#0a2030"),
+    emissiveMap: planetMap,
+    emissiveIntensity: 0.2,
+  };
   const planetMaterial = track(
-    new MeshStandardMaterial({
-      map: planetMap,
-      roughness: 0.95,
-      metalness: 0,
-      emissive: new Color("#0c2b40"),
-      emissiveMap: planetMap,
-      emissiveIntensity: 0.55,
-    }),
+    compact
+      ? new MeshStandardMaterial(planetParams)
+      : new MeshPhysicalMaterial({ ...planetParams, clearcoat: 0.45, clearcoatRoughness: 0.28 }),
   );
   const planetGeo = track(new SphereGeometry(R_PLANET, compact ? 64 : 112, compact ? 44 : 72));
   const planetMesh = new Mesh(planetGeo, planetMaterial);
@@ -370,7 +399,7 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
         varying vec3 vN;
         varying vec3 vV;
         void main() {
-          float f = pow(1.0 - clamp(dot(vN, vV), 0.0, 1.0), 2.8);
+          float f = pow(1.0 - clamp(dot(vN, vV), 0.0, 1.0), 3.6);
           gl_FragColor = vec4(uColor * f * uStrength, f * uStrength);
         }`,
       transparent: true,
@@ -382,23 +411,32 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
   scene.add(new Mesh(atmoGeo, atmoMaterial));
 
   /* ---- lights ---- */
-  scene.add(new AmbientLight(0x7a97b5, 0.42));
-  scene.add(new HemisphereLight(0x5b82a6, 0x07090e, 0.5));
-  const fill = new DirectionalLight(0x9fd8ff, 0.5);
-  fill.position.set(-30, 18, 24);
-  scene.add(fill);
+  // No sun: only a whisper of cold starlight and a thin rim from the galaxy behind the planet.
+  scene.add(new AmbientLight(0x5f7f9f, 0.09));
+  scene.add(new HemisphereLight(0x4d77a0, 0x05070b, 0.22));
+  const rim = new DirectionalLight(0x8fc8ff, 0.5);
+  rim.position.set(-26, 12, -30);
+  scene.add(rim);
 
+  // Every Lantern is a real light, falling off with the square of distance (intensity in candela, 1 unit =
+  // 1,000 km). At ~2,000 km a Lantern lights the ice beneath it to full brightness; the pool fades out
+  // toward its horizon. Desktop gives every Lantern its own light; phones get Lantern 17 plus five lights that
+  // are handed, each frame, to the Lanterns facing the camera (the ones whose pools can be seen).
+  const LANTERN_CD = 18;
+  /** the light itself is a warm white, so the ice keeps its texture; the amber is in the Lantern's own glow */
+  const LANTERN_LIGHT = new Color("#ffd29a");
   const heroLight = new PointLight(0xffb547, 0, 0, 2);
   scene.add(heroLight);
   const neighbourLights: { light: PointLight; body: number }[] = [];
-  const maxNeighbourLights = compact ? 1 : 3;
-  for (const i of byKind.lantern) {
-    if (neighbourLights.length >= maxNeighbourLights) break;
-    if (bodies[i].status !== "online") continue;
-    const light = new PointLight(0xffb547, 120, 0, 2);
+  const neighbours = byKind.lantern.filter((i) => i !== heroIndex);
+  const maxNeighbourLights = Math.min(neighbours.length, compact ? 5 : 8);
+  const shareLights = maxNeighbourLights < neighbours.length;
+  for (let k = 0; k < maxNeighbourLights; k++) {
+    const light = new PointLight(LANTERN_LIGHT, LANTERN_CD, 0, 2);
     scene.add(light);
-    neighbourLights.push({ light, body: i });
+    neighbourLights.push({ light, body: neighbours[k] });
   }
+  const facing = new Map<number, number>();
 
   /* ---- lanterns ---- */
   interface LanternView {
@@ -410,6 +448,8 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
     glowSprite: Sprite;
     scale: number;
     phase: number;
+    /** current light output, 0..1 */
+    level: number;
   }
   const lanternViews: LanternView[] = [];
   const ringGeo = track(new RingGeometry(0.5, 1.0, 40));
@@ -447,7 +487,7 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
     group.add(glowSprite);
     group.scale.setScalar(scale);
     scene.add(group);
-    lanternViews.push({ body: i, group, coreMat, plateMat, glow, glowSprite, scale, phase: (i * 1.713) % TAU });
+    lanternViews.push({ body: i, group, coreMat, plateMat, glow, glowSprite, scale, phase: (i * 1.713) % TAU, level: 1 });
   }
   const heroView = lanternViews.find((l) => l.body === heroIndex) as LanternView;
 
@@ -669,6 +709,8 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
   let disposed = false;
   let last = 0;
   const INTRO_SECONDS = 3.6;
+  /** follow camera: about 1,400 km from Lantern 17, above and behind it, with the lit ice filling the frame */
+  const FOLLOW_DISTANCE = 1.3;
   let introT = reducedMotion ? INTRO_SECONDS : 0;
   let transition = 0;
   let transitionLen = 0;
@@ -678,10 +720,10 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
   let nextTelemetry = 0;
   let nextStats = 0;
 
-  /** Distance at which a 19,000 km radius (Lantern 17's wider orbit) fits the shorter side of the view. */
+  /** Distance at which an 11,600 km radius (the Lantern shell around Lantern 17's orbit) fits the shorter side of the view. */
   const overviewDistance = () => {
     const aspect = camera.aspect || 1.6;
-    return 19 / (Math.tan(MathUtils.degToRad(camera.fov / 2)) * Math.min(1, aspect));
+    return 11.6 / (Math.tan(MathUtils.degToRad(camera.fov / 2)) * Math.min(1, aspect));
   };
 
   const controls = new OrbitControls(camera, canvas);
@@ -691,7 +733,7 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
   controls.rotateSpeed = compact ? 0.7 : 0.55;
   controls.zoomSpeed = 0.75;
   controls.minDistance = 8.5;
-  controls.maxDistance = 100;
+  controls.maxDistance = 60;
   controls.minPolarAngle = 0.04;
   controls.maxPolarAngle = Math.PI - 0.04;
   controls.autoRotate = !reducedMotion;
@@ -706,7 +748,7 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
 
   const placeCameraDefault = () => {
     const d = overviewDistance();
-    const polar = MathUtils.degToRad(68);
+    const polar = MathUtils.degToRad(72);
     const az = MathUtils.degToRad(32);
     camera.position.set(d * Math.sin(polar) * Math.sin(az), d * Math.cos(polar), d * Math.sin(polar) * Math.cos(az));
     controls.target.set(0, 0, 0);
@@ -732,6 +774,10 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
     const w = Math.max(1, container.clientWidth);
     const h = Math.max(1, container.clientHeight);
     renderer.setSize(w, h, false);
+    if (composer) {
+      composer.setPixelRatio(pixelRatio);
+      composer.setSize(w, h);
+    }
     canvas.style.width = "100%";
     canvas.style.height = "100%";
     camera.aspect = w / h;
@@ -928,9 +974,9 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
     heroView.plateMat.emissiveIntensity = 0.05 + 0.9 * level * (0.25 + 0.75 * lit);
     heroView.glow.color.copy(EMBER).lerp(AMBER, lit);
     heroView.glow.opacity = MathUtils.lerp(0.3 * level, 0.95, lit);
-    heroView.glowSprite.scale.setScalar(MathUtils.lerp(5.5, 13, lit));
-    heroLight.color.copy(EMBER).lerp(AMBER, lit);
-    heroLight.intensity = MathUtils.lerp(12 * level, 560, lit);
+    heroView.glowSprite.scale.setScalar(MathUtils.lerp(7, 16, lit));
+    heroLight.color.copy(EMBER).lerp(LANTERN_LIGHT, lit);
+    heroLight.intensity = MathUtils.lerp(LANTERN_CD * 0.12 * level, LANTERN_CD * 1.3, lit);
     heroLight.position.copy(scenePos[heroIndex]);
 
     for (const lv of lanternViews) {
@@ -941,12 +987,26 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
         const f = 0.5 + 0.5 * Math.sin(rt * 5.2 + lv.phase) * Math.sin(rt * 2.9 + lv.phase * 2);
         l = 0.35 + 0.35 * f;
       }
+      lv.level = l;
       lv.coreMat.color.copy(AMBER).multiplyScalar(0.4 + 0.6 * l);
       lv.plateMat.emissiveIntensity = 0.1 + 0.5 * l;
-      lv.glow.opacity = 0.7 * l;
-      lv.glowSprite.scale.setScalar(b.status === "damaged" ? 6 : 8);
+      lv.glow.opacity = 0.75 * l;
+      lv.glowSprite.scale.setScalar(b.status === "damaged" ? 8 : 11);
     }
-    for (const nl of neighbourLights) nl.light.position.copy(scenePos[nl.body]);
+    if (shareLights) {
+      // hand the lights to the Lanterns most toward the camera, and fade each by how far it faces away,
+      // so a light changing hands near the limb does not pop
+      _g.copy(camera.position).normalize();
+      for (const i of neighbours) facing.set(i, _v.copy(scenePos[i]).normalize().dot(_g));
+      neighbours.sort((a, b) => (facing.get(b) ?? 0) - (facing.get(a) ?? 0));
+      neighbourLights.forEach((nl, k) => (nl.body = neighbours[k]));
+    }
+    for (const nl of neighbourLights) {
+      nl.light.position.copy(scenePos[nl.body]);
+      const view = lanternViews.find((lv) => lv.body === nl.body);
+      const fade = shareLights ? MathUtils.smoothstep(facing.get(nl.body) ?? 0, -0.55, -0.1) : 1;
+      nl.light.intensity = LANTERN_CD * (view ? view.level : 1) * fade;
+    }
 
     // Beam to the surface: _p is the Lantern, _v the sub-lantern surface point.
     const hp = scenePos[heroIndex];
@@ -958,7 +1018,7 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
     beam.scale.set(altitude * 0.22, altitude, altitude * 0.22);
     beamMat.opacity = 0.075 * lit;
 
-    const strength = MathUtils.lerp(0.85, 1.25, lit);
+    const strength = MathUtils.lerp(0.5, 0.75, lit);
     atmoMaterial.uniforms.uStrength.value = strength;
     (atmoMaterial.uniforms.uColor.value as Color).copy(ICE).lerp(AMBER, lit * 0.55);
   };
@@ -970,7 +1030,23 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
     toScene(_tmp, 0, _t).sub(hp).normalize(); // direction of travel
     _g.copy(hp).normalize(); // straight up from the surface
     // a narrow (portrait) frame needs the planet closer to straight ahead, so sit less far behind
-    return out.copy(_g).multiplyScalar(2.4).addScaledVector(_t, camera.aspect < 0.9 ? -0.3 : -0.7);
+    return out.copy(_g).multiplyScalar(1.15).addScaledVector(_t, camera.aspect < 0.9 ? -0.35 : -0.6);
+  };
+
+  // Lantern 17's own frame (up from the surface, along its track, orbit normal), so the follow camera can ride
+  // with it instead of being left behind as it laps the planet.
+  const frameNow = new Quaternion();
+  const framePrev = new Quaternion();
+  let framePrevValid = false;
+  const heroFrame = (out: Quaternion) => {
+    const hp = scenePos[heroIndex];
+    positionAt(hero, simT + 40, _tmp, 0);
+    toScene(_tmp, 0, _t).sub(hp);
+    _g.copy(hp).normalize();
+    _t.addScaledVector(_g, -_t.dot(_g)).normalize();
+    _s.crossVectors(_g, _t);
+    _m.makeBasis(_g, _t, _s);
+    return out.setFromRotationMatrix(_m);
   };
 
   const updateCamera = (dt: number) => {
@@ -979,7 +1055,7 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
       introT += dt;
       const k = Math.min(1, introT / INTRO_SECONDS);
       const e = 1 - Math.pow(1 - k, 3);
-      const target = view === "follow" ? 3.4 : overviewDistance();
+      const target = view === "follow" ? FOLLOW_DISTANCE : overviewDistance();
       _v.copy(camera.position).sub(controls.target);
       _v.setLength(MathUtils.lerp(target * introStartScale, target, e));
       camera.position.copy(controls.target).add(_v);
@@ -991,6 +1067,20 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
     const k = 1 - Math.exp(-dt * (view === "follow" ? (transition > 0 ? 3 : 16) : 3.2));
     controls.target.lerp(desired, k);
     camera.position.add(_v.copy(controls.target).sub(_p));
+
+    // follow: turn the camera offset with Lantern 17's frame, keeping whatever angle the viewer chose
+    if (view === "follow") {
+      heroFrame(frameNow);
+      if (framePrevValid) {
+        _q.copy(framePrev).invert().premultiply(frameNow);
+        _v.copy(camera.position).sub(controls.target).applyQuaternion(_q);
+        camera.position.copy(controls.target).add(_v);
+      }
+      framePrev.copy(frameNow);
+      framePrevValid = true;
+    } else {
+      framePrevValid = false;
+    }
 
     if (transition > 0) {
       transition -= dt;
@@ -1086,7 +1176,8 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
         closestKm: monitor.stats.closestKm,
       });
     }
-    renderer.render(scene, camera);
+    if (composer) composer.render(dt);
+    else renderer.render(scene, camera);
   };
 
   const syncLoop = () => {
@@ -1133,9 +1224,9 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
       if (mode === view) return;
       view = mode;
       transition = 1.8;
-      transitionLen = mode === "follow" ? 3.4 : overviewDistance();
-      controls.minDistance = mode === "follow" ? 0.55 : 8.5;
-      controls.maxDistance = mode === "follow" ? 40 : 100;
+      transitionLen = mode === "follow" ? FOLLOW_DISTANCE : overviewDistance();
+      controls.minDistance = mode === "follow" ? 0.3 : 8.5;
+      controls.maxDistance = mode === "follow" ? 25 : 60;
       controls.autoRotate = false;
       if (mode === "follow") select(heroIndex);
     },
@@ -1149,7 +1240,7 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
     resetView() {
       view = "overview";
       controls.minDistance = 8.5;
-      controls.maxDistance = 100;
+      controls.maxDistance = 60;
       placeCameraDefault();
       introT = INTRO_SECONDS;
       transition = 0;
@@ -1189,6 +1280,8 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
       for (const d of disposables) d.dispose();
       sats.dispose();
       rocks.dispose();
+      bloom?.dispose();
+      composer?.dispose();
       const bg = scene.background as Texture | Color | null;
       if (bg && "isTexture" in bg) bg.dispose();
       renderer.dispose();

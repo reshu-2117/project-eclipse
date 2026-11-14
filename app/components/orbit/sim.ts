@@ -37,7 +37,7 @@ export const PLANET_RADIUS_KM = 6_371;
 export const UNIT_KM = 1_000;
 export const SAFETY_MARGIN_KM = 70;
 export const MIN_PERIGEE_KM = PLANET_RADIUS_KM + 900;
-export const MAX_APOGEE_KM = 36_000;
+export const MAX_APOGEE_KM = 18_000;
 export const ORBIT_SAMPLES = 256;
 export const FIELD_SEED = "ECLIPSE-01/LANTERN-17/v1";
 export const HERO_ID = "L-17";
@@ -534,13 +534,13 @@ function lanternSpecs(): Spec[] {
     kind: "lantern" as const,
     role: status === "damaged" ? "Lantern station, ice-damaged collector" : "Lantern station",
     status,
-    keepOutKm: 220,
-    visualKm: 200,
-    // Irregular on purpose: eccentric paths that swing from low over the surface to far out,
-    // each tilted differently, so the Lanterns do not trace a neat ring.
+    keepOutKm: 88,
+    visualKm: 80,
+    // Low and close, as a lighting network has to be: eccentric paths between about 1,000 and 5,000 km
+    // over the surface, each tilted differently, so the Lanterns do not trace a neat ring.
     propose: (rng, widen) => ({
-      a: range(rng, 11_800, 19_500 + widen),
-      e: range(rng, 0.1, 0.3),
+      a: range(rng, 8_700, 10_400 + widen),
+      e: range(rng, 0.1, 0.17),
       i: range(rng, 4, 68) * DEG,
       raan: range(rng, 0, TAU),
       argp: range(rng, 0, TAU),
@@ -551,10 +551,10 @@ function lanternSpecs(): Spec[] {
 
 function missionSpecs(): Spec[] {
   const defs: { id: string; name: string; role: string; a: [number, number]; e: number; i: [number, number] }[] = [
-    { id: "CR-1", name: "Control Relay CR-1", role: "Relay to Control, far side", a: [16_000, 21_500], e: 0.05, i: [20, 60] },
-    { id: "TN-2", name: "Repair Tender TN-2", role: "Parked repair tender", a: [10_500, 13_000], e: 0.03, i: [5, 35] },
-    { id: "SB-3", name: "Survey Beacon SB-3", role: "Thermal survey beacon", a: [9_000, 15_000], e: 0.08, i: [0, 80] },
-    { id: "IC-4", name: "Ice Core Cache IC-4", role: "Sample cache from the first survey", a: [14_000, 22_000], e: 0.1, i: [100, 160] },
+    { id: "CR-1", name: "Control Relay CR-1", role: "Relay to Control, far side", a: [11_000, 12_600], e: 0.05, i: [20, 60] },
+    { id: "TN-2", name: "Repair Tender TN-2", role: "Parked repair tender", a: [8_600, 10_000], e: 0.03, i: [5, 35] },
+    { id: "SB-3", name: "Survey Beacon SB-3", role: "Thermal survey beacon", a: [7_900, 11_500], e: 0.08, i: [0, 80] },
+    { id: "IC-4", name: "Ice Core Cache IC-4", role: "Sample cache from the first survey", a: [9_500, 12_400], e: 0.1, i: [100, 160] },
   ];
   return defs.map((d) => ({
     id: d.id,
@@ -562,8 +562,8 @@ function missionSpecs(): Spec[] {
     kind: "mission" as const,
     role: d.role,
     status: "nominal" as const,
-    keepOutKm: 170,
-    visualKm: 150,
+    keepOutKm: 68,
+    visualKm: 60,
     propose: (rng, widen) => ({
       a: range(rng, d.a[0], d.a[1] + widen),
       e: range(rng, 0, d.e),
@@ -583,11 +583,11 @@ function satelliteSpecs(count: number): Spec[] {
     kind: "satellite" as const,
     role: roles[k % roles.length],
     status: "nominal" as const,
-    keepOutKm: 130,
-    visualKm: 110,
+    keepOutKm: 52,
+    visualKm: 44,
     propose: (rng: Rng, widen: number) => ({
-      a: range(rng, 9_000, 24_000 + widen),
-      e: range(rng, 0, 0.1),
+      a: range(rng, 7_800, 13_400 + widen),
+      e: range(rng, 0, 0.06),
       i: range(rng, 0, 110) * DEG,
       raan: range(rng, 0, TAU),
       argp: range(rng, 0, TAU),
@@ -598,7 +598,7 @@ function satelliteSpecs(count: number): Spec[] {
 
 function debrisSpecs(count: number, rng: Rng): Spec[] {
   return Array.from({ length: count }, (_, k) => {
-    const keepOutKm = Math.round(range(rng, 60, 120));
+    const keepOutKm = Math.round(range(rng, 24, 48));
     return {
       id: `ICE-${pad(k + 1, 3)}`,
       name: `Ice fragment ${pad(k + 1, 3)}`,
@@ -608,8 +608,8 @@ function debrisSpecs(count: number, rng: Rng): Spec[] {
       keepOutKm,
       visualKm: keepOutKm * 0.75,
       propose: (r: Rng, widen: number) => ({
-        a: range(r, 8_300, 27_000 + widen),
-        e: range(r, 0, 0.14),
+        a: range(r, 7_600, 13_800 + widen),
+        e: range(r, 0, 0.09),
         // uniform over the sphere of orbit normals: prograde, polar and retrograde all occur
         i: Math.acos(range(r, -1, 1)),
         raan: range(r, 0, TAU),
@@ -646,8 +646,11 @@ function firstConflict(cand: Orbit, keepOutKm: number, placed: Body[], counters:
 }
 
 const MAX_ATTEMPTS = 900;
-/** A proposal whose radial range overlaps more than this many existing bodies is dropped without a search. */
-const CROWD_LIMIT = 6;
+/**
+ * A proposal whose radial range overlaps more than this many existing bodies is dropped without a search.
+ * The field is a thin shell close to the planet, so most paths overlap radially; this only drops extremes.
+ */
+const CROWD_LIMIT = 64;
 
 function crowdCount(el: Elements, keepOutKm: number, placed: Body[]): number {
   const rp = el.a * (1 - el.e);
@@ -708,7 +711,8 @@ export function generateField(seed: string = FIELD_SEED): OrbitalField {
   };
 
   // Lantern 17 is fixed: the other bodies are routed around it. Slot 17 gives it a 17 degree tilt, and
-  // a clearly elliptical path (e = 0.27): about 3,700 km over the surface at its lowest, 11,200 km at its highest.
+  // a clearly elliptical path (e = 0.16) that hugs the planet: about 1,400 km over the surface at its lowest,
+  // 4,400 km at its highest.
   bodies.push(
     finish(
       {
@@ -717,11 +721,11 @@ export function generateField(seed: string = FIELD_SEED): OrbitalField {
         kind: "lantern",
         role: "Lantern station, collector struck by ice",
         status: "target",
-        keepOutKm: 220,
-        visualKm: 200,
-        propose: () => ({ a: 13_800, e: 0.27, i: 17 * DEG, raan: 40 * DEG, argp: 110 * DEG, m0: 2.1 }),
+        keepOutKm: 88,
+        visualKm: 80,
+        propose: () => ({ a: 9_300, e: 0.16, i: 17 * DEG, raan: 40 * DEG, argp: 110 * DEG, m0: 2.1 }),
       },
-      makeOrbit({ a: 13_800, e: 0.27, i: 17 * DEG, raan: 40 * DEG, argp: 110 * DEG, m0: 2.1 }),
+      makeOrbit({ a: 9_300, e: 0.16, i: 17 * DEG, raan: 40 * DEG, argp: 110 * DEG, m0: 2.1 }),
       0,
     ),
   );
@@ -730,7 +734,7 @@ export function generateField(seed: string = FIELD_SEED): OrbitalField {
     let placedBody: Body | null = null;
     for (let attempt = 0; attempt < MAX_ATTEMPTS && !placedBody; attempt++) {
       // If a region is crowded, let later attempts reach a little further out.
-      const widen = Math.floor(attempt / 60) * 1_200;
+      const widen = Math.floor(attempt / 60) * 400;
       let el = spec.propose(rng, widen);
       if (!withinBounds(el)) {
         rejected++;

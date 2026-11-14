@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type CSSProperties, type PointerEvent } from "react";
+import { createPlanetRenderer, type PlanetLight, type PlanetRenderer } from "./heroPlanet";
 
 const PLANES = 3;
 const PER_PLANE = 8;
@@ -38,6 +39,26 @@ const EPOCH = 0.86;
 const TRAIL = (24 * Math.PI) / 180;
 
 const AMBER = "255, 181, 71";
+
+/** the planet turns once every 160 s, the same way its Lanterns travel */
+const SPIN_PERIOD = 160_000;
+/** the GL planet canvas reaches 1.25 planet radii, leaving room for the lit haze */
+const PLANET_EXTENT = 1.25;
+/** the shader has no fine edges besides the limb, so it renders at up to 1.5x to stay cheap on laptops and phones */
+const PLANET_DPR = 1.5;
+/** Lantern light on the ice: power at full output, in planet-radius units */
+const LANTERN_POWER = 0.16;
+/** light colours, linear RGB: a warm white for working Lanterns, ember for Lantern 17's dying glow */
+const WARM_WHITE: readonly [number, number, number] = [1.0, 0.58, 0.25];
+const EMBER_LIGHT: readonly [number, number, number] = [1.0, 0.144, 0.024];
+/** ice-damaged Lanterns run at reduced output, as shown on the Lantern Network board */
+const OUTPUT: Record<number, number> = { 8: 0.64, 15: 0.41, 17: 0.52 };
+
+/** Lantern 17's failing collector: mostly a faint ember, with the same stutter as its marker. */
+function emberFlicker(elapsed: number) {
+  const f = (elapsed % 2600) / 2600;
+  return (f > 0.46 && f < 0.5) || (f > 0.53 && f < 0.57) ? 0.2 : 1;
+}
 
 interface Plane {
   /** node direction and in-plane normal, in world space (x right, y north, z toward the viewer) */
@@ -132,6 +153,7 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
   const heroRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const backRef = useRef<HTMLCanvasElement>(null);
+  const planetRef = useRef<HTMLCanvasElement>(null);
   const frontRef = useRef<HTMLCanvasElement>(null);
   const markerRef = useRef<HTMLSpanElement>(null);
   const anchorRef = useRef<HTMLSpanElement>(null);
@@ -148,9 +170,10 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
     const stage = stageRef.current;
     const back = backRef.current;
     const front = frontRef.current;
+    const planetCanvas = planetRef.current;
     const marker = markerRef.current;
     const anchor = anchorRef.current;
-    if (!stage || !back || !front || !marker || !anchor) return;
+    if (!stage || !back || !front || !planetCanvas || !marker || !anchor) return;
     const bctx = back.getContext("2d");
     const fctx = front.getContext("2d");
     if (!bctx || !fctx) return;
@@ -164,6 +187,35 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
     const ringFront = document.createElement("canvas");
     let flipped = false;
 
+    // The planet: a shader lit by the Lanterns. Until it is ready (or if WebGL is missing) the CSS planet shows.
+    let planet: PlanetRenderer | null = null;
+    let disposed = false;
+    const lights: PlanetLight[] = Array.from({ length: N }, () => ({ x: 0, y: 0, z: 0, power: 0, color: WARM_WHITE }));
+    let lit17Level = litRef.current ? 1 : 0;
+    let lastElapsed = 0;
+    const img = new Image();
+    img.decoding = "async";
+    img.src = "/textures/planet_map.jpg";
+    img
+      .decode()
+      .then(() => {
+        if (disposed) return;
+        planet = createPlanetRenderer(
+          planetCanvas,
+          { elevation: ELEVATION, roll: ROLL, extent: PLANET_EXTENT },
+          img,
+          () => {
+            planet = null;
+            stage.classList.remove("gl-planet");
+          },
+        );
+        if (!planet) return;
+        planet.resize(size * PLANET_RADIUS * PLANET_EXTENT * 2, Math.min(window.devicePixelRatio || 1, PLANET_DPR));
+        draw(lastElapsed);
+        stage.classList.add("gl-planet");
+      })
+      .catch(() => {});
+
     function resize() {
       size = stage!.clientWidth;
       dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -174,6 +226,7 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
       }
       sprite = makeSprite(dpr);
       drawRings();
+      planet?.resize(size * PLANET_RADIUS * PLANET_EXTENT * 2, Math.min(dpr, PLANET_DPR));
     }
 
     function drawRings() {
@@ -217,6 +270,10 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
       }
 
       const lit = litRef.current;
+      // Lantern 17 comes back over a couple of seconds, not in one frame
+      const dt = Math.max(0, elapsed - lastElapsed);
+      lastElapsed = elapsed;
+      lit17Level = reduce ? (lit ? 1 : 0) : lit17Level + ((lit ? 1 : 0) - lit17Level) * (1 - Math.exp(-dt / 900));
       const segs = 18;
       for (let i = 0; i < N; i++) {
         if (i === TARGET && !lit) continue; // a dark Lantern leaves no light behind it
@@ -245,6 +302,21 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
         const pt = project(p, lanternAngle(i, elapsed));
         const x = pt.x * size;
         const y = pt.y * size;
+        // the same Lantern, as a light on the planet (camera space, in planet radii)
+        const light = lights[i];
+        light.x = pt.x / PLANET_RADIUS;
+        light.y = -pt.y / PLANET_RADIUS;
+        light.z = (pt.d * RADIUS) / PLANET_RADIUS;
+        const output = OUTPUT[i] ?? 1;
+        if (i === TARGET) {
+          const ember = 0.05 * emberFlicker(elapsed);
+          light.power = LANTERN_POWER * (ember + (1 - ember) * lit17Level);
+          light.color = lit17Level > 0.5 ? WARM_WHITE : EMBER_LIGHT;
+        } else {
+          // a scarred collector shimmers a little
+          const shimmer = output < 1 ? 0.9 + 0.1 * Math.sin(elapsed / 310 + i * 1.7) : 1;
+          light.power = LANTERN_POWER * output * shimmer;
+        }
         if (i === TARGET) {
           const scale = 0.84 + 0.26 * ((pt.d + 1) / 2);
           marker!.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${scale.toFixed(3)})`;
@@ -261,10 +333,11 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
         if (occluded(pt.x, pt.y, pt.d)) continue;
         const g = pt.d > 0 ? fctx! : bctx!;
         const s = 0.8 + 0.32 * ((pt.d + 1) / 2);
-        g.globalAlpha = depthAlpha(pt.d);
+        g.globalAlpha = depthAlpha(pt.d) * (0.55 + 0.45 * (OUTPUT[i] ?? 1));
         g.drawImage(sprite, x - half * s, y - half * s, half * 2 * s, half * 2 * s);
         g.globalAlpha = 1;
       }
+      planet?.render(lights, (elapsed / SPIN_PERIOD) * Math.PI * 2);
     }
 
     const t0 = performance.now();
@@ -302,10 +375,13 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
     io.observe(stage);
 
     return () => {
+      disposed = true;
       cancelAnimationFrame(raf);
       ro.disconnect();
       io.disconnect();
       redrawRef.current = () => {};
+      planet?.dispose();
+      stage.classList.remove("gl-planet");
     };
   }, []);
 
@@ -365,6 +441,17 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
           <div className="planet" style={{ transform: `rotate(${-ROLL_DEG}deg)` }} aria-hidden="true">
             <div className="planet-shade" style={{ transform: `rotate(${ROLL_DEG}deg)` }} />
           </div>
+          <canvas
+            className="planet-gl"
+            ref={planetRef}
+            aria-hidden="true"
+            style={{
+              left: `${(50 - PLANET_RADIUS * PLANET_EXTENT * 100).toFixed(3)}%`,
+              top: `${(50 - PLANET_RADIUS * PLANET_EXTENT * 100).toFixed(3)}%`,
+              width: `${(PLANET_RADIUS * PLANET_EXTENT * 200).toFixed(3)}%`,
+              height: `${(PLANET_RADIUS * PLANET_EXTENT * 200).toFixed(3)}%`,
+            }}
+          />
 
           <canvas className="orbit-canvas orbit-front" ref={frontRef} aria-hidden="true" />
 
