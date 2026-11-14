@@ -86,6 +86,7 @@ export function createGame(seed = 1): GameState {
     dockDelayH: 0,
     flightSegH: 0,
     flightLeftH: 0,
+    piloted: false,
     helped: false,
     evidencePenalty: 0,
     arrivedT: null,
@@ -498,7 +499,13 @@ function apply(s: GameState, a: Action) {
       return launch(s);
 
     case "route":
-      return chooseRoute(s, a.id);
+      return chooseRoute(s, a.id, a.piloted === true);
+
+    case "flight":
+      return pilotReport(s, a.dv, a.hours, a.hull, a.note);
+
+    case "dock":
+      return pilotDock(s, a.dv, a.hours, a.hull, a.speed);
 
     case "card":
       return playCard(s, a.choice);
@@ -676,7 +683,7 @@ function drawDeck(s: GameState): EventId[] {
   return picked;
 }
 
-function chooseRoute(s: GameState, id: RouteId) {
+function chooseRoute(s: GameState, id: RouteId, piloted = false) {
   if (s.phase !== "route") no("The route is chosen at the launch gantry.");
   const route = ROUTES[id];
   if (!route) no("Unknown route.");
@@ -711,10 +718,97 @@ function chooseRoute(s: GameState, id: RouteId) {
     hours: tot.arriveH,
   });
   s.phase = "journey";
+  if (piloted) {
+    // The flight deck flies the route in real physics and reports time, extra burns and docking itself.
+    s.piloted = true;
+    s.flightSegH = 0;
+    s.flightLeftH = 0;
+    return;
+  }
   // fly the first leg now; each event card is followed by the next leg, and the last leg ends at the dock
   s.flightSegH = tot.arriveH / (s.deck.length + 1);
   s.flightLeftH = tot.arriveH - s.flightSegH;
   advance(s, s.flightSegH);
+}
+
+/** Keep a number the flight deck sends inside a sane range (it is replayed from saved actions). */
+function clampNum(n: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, Number.isFinite(n) ? n : 0));
+}
+
+/** Apply what the flight deck measured: time flown, Δv beyond the computer's ideal, hull damage. */
+function pilotApply(s: GameState, dvRaw: number, hoursRaw: number, hullRaw: number, category: DvCategory): boolean {
+  const dv = clampNum(dvRaw, -200, 5000);
+  const hours = clampNum(hoursRaw, 0, 48);
+  const hull = Math.round(clampNum(hullRaw, 0, 100));
+  advance(s, hours);
+  if (hull) s.hull = Math.max(0, s.hull - hull);
+  if (dv < 0) {
+    // flown cheaper than the computer's plan: that fuel is still in the tank
+    const dry = shipDryKg(s);
+    const ve = isp(s) * 9.80665;
+    s.fuelKg = Math.min(HULLS[s.loadout.hull].maxFuelKg, (dry + s.fuelKg) * Math.exp(-dv / ve) - dry);
+    s.stats.dvUsed[category] = Math.max(0, s.stats.dvUsed[category] + dv);
+    return true;
+  }
+  if (dv === 0) return true;
+  const before = dvLeft(s);
+  const b = burn(s, dv, category);
+  if (b.ok) return true;
+  s.adrift = true;
+  log(
+    s,
+    "alarm",
+    "The tank ran dry in flight",
+    `The burns needed ${r0(dv)} m/s more and you had ${r0(before)}. With nothing left to brake, you drift past Lantern 17.`,
+    { dv: -b.achieved, fuelKg: -b.fuelKg },
+  );
+  s.crewHome = false;
+  s.strandedReason = `Out of Δv in flight: needed ${r0(dv)} m/s more, had ${r0(before)}.`;
+  depart(s, { stranded: true });
+  return false;
+}
+
+function pilotGuard(s: GameState) {
+  if (s.phase !== "journey") no("You're not in flight.");
+  if (!s.piloted) no("This flight is on autopilot.");
+}
+
+function pilotReport(s: GameState, dv: number, hours: number, hull: number, note?: string) {
+  pilotGuard(s);
+  if (!pilotApply(s, dv, hours, hull, "route")) return;
+  const extra = clampNum(dv, -200, 5000);
+  const hit = Math.round(clampNum(hull, 0, 100));
+  if (Math.abs(extra) >= 0.5 || hit > 0) {
+    const bits: string[] = [];
+    if (extra >= 0.5) bits.push(`${r0(extra)} m/s more than the flight computer's ideal`);
+    if (extra <= -0.5) bits.push(`${r0(-extra)} m/s less than the flight computer's ideal`);
+    if (hit > 0) bits.push(`${hit} hull damage`);
+    log(s, hit > 0 ? "alarm" : "notice", note?.slice(0, 80) || "Piloting", `${bits.join(", ")}.`, {
+      ...(Math.abs(extra) >= 0.5 ? { dv: -extra } : {}),
+      ...(hit > 0 ? { hull: -hit } : {}),
+    });
+  }
+}
+
+function pilotDock(s: GameState, dv: number, hours: number, hull: number, speed: number) {
+  pilotGuard(s);
+  if (s.card < s.deck.length) no("There are still events ahead on this flight.");
+  if (!pilotApply(s, dv, hours, hull, "docking")) return;
+  const v = clampNum(speed, 0, 10);
+  const hit = Math.round(clampNum(hull, 0, 100));
+  const extra = clampNum(dv, -200, 5000);
+  log(
+    s,
+    hit > 0 ? "alarm" : "choice",
+    hit > 0 ? "Hard dock" : "Soft capture",
+    `Contact at ${(Math.round(v * 100) / 100).toFixed(2)} m/s.` +
+      (hit > 0 ? ` The ring took the blow: ${hit} hull damage.` : " The latches close.") +
+      (extra >= 0.5 ? ` The flight cost ${r0(extra)} m/s more than the computer's plan.` : "") +
+      (extra <= -0.5 ? ` You flew it ${r0(-extra)} m/s cheaper than the computer's plan.` : ""),
+    { ...(Math.abs(extra) >= 0.5 ? { dv: -extra } : {}), ...(hit > 0 ? { hull: -hit } : {}) },
+  );
+  arrive(s);
 }
 
 function cardChoiceBlocked(s: GameState, c: CardChoice): string | null {
@@ -811,6 +905,7 @@ function playCard(s: GameState, choiceId: string) {
   advance(s, hours);
 
   s.card += 1;
+  if (s.piloted) return; // the flight deck flies on, and docking ends the journey
   if (s.card >= s.deck.length) arrive(s);
   else {
     const seg = Math.min(s.flightSegH, s.flightLeftH);
@@ -829,7 +924,9 @@ function arrive(s: GameState) {
   s.arrivedT = s.t;
   s.phase = "station";
   const notes: string[] = [];
-  if (!hasSensor(s, "lidar")) {
+  if (s.piloted) {
+    notes.push(hasSensor(s, "lidar") ? "You flew the approach yourself, with lidar calling the range." : "You flew the approach by eye: no lidar.");
+  } else if (!hasSensor(s, "lidar")) {
     const b = burn(s, BLIND_DOCK.dv, "docking");
     notes.push(
       `No lidar: the station's drift makes docking slow and costly (${b.ok ? r0(BLIND_DOCK.dv) : r0(b.achieved)} m/s, ${fmtHours(BLIND_DOCK.hours)}).`,

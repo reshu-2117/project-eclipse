@@ -61,7 +61,11 @@ export type Action =
   | { type: "mobility"; id: MobilityId }
   | { type: "fuel"; kg: number }
   | { type: "launch" }
-  | { type: "route"; id: RouteId }
+  | { type: "route"; id: RouteId; piloted?: boolean }
+  /** Piloted flight: what the pilot spent beyond the flight computer's ideal, time flown, hull damage. */
+  | { type: "flight"; dv: number; hours: number; hull: number; note?: string }
+  /** Piloted flight: contact with Lantern 17's docking port. */
+  | { type: "dock"; dv: number; hours: number; hull: number; speed: number }
   | { type: "card"; choice: string }
   | { type: "survey" }
   | { type: "inspect"; zone: ZoneId; method: Method }
@@ -150,6 +154,8 @@ export interface GameState {
   /** The flight is split into equal legs so time passes between event cards. */
   flightSegH: number;
   flightLeftH: number;
+  /** The player flies the route on the flight deck: time, extra Δv and docking come from the flight. */
+  piloted: boolean;
   helped: boolean;
   evidencePenalty: number;
 
