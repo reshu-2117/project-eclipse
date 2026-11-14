@@ -62,3 +62,7 @@ Design decisions made in Chunk 0 (where the handbook left a gap):
 Tests: `npm test` (52 tests). They re-derive every handbook number, check the rules, and play scripted crews to prove that all 8 endings can be reached.
 
 **Mission Lab:** `/lab` runs the engine live, with handbook-vs-engine checks, a working hangar calculator, and nine scripted crews you can watch play full missions.
+
+## AI use
+
+Project Eclipse was built with AI assistance, and we declare it here as the NASA Space Apps rules ask. After the team's initial project scaffold, the code in this repository (the front end, the game engine and its tests) was written and reviewed by Claude Code (Anthropic's Claude) working from the team's design documents. Each of those commits carries a `Co-Authored-By` trailer naming it. No generative AI was used for images or video: every visual is drawn in code, and the textures are procedural. The world, story and game design come from the team's own documents (World-Building Dossier v3 and Game Systems Handbook v2). Nothing here uses NASA logos, flags or mission identifiers.
