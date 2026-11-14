@@ -87,7 +87,7 @@ const CREW = [
     i: "S",
     name: "Shunmukh",
     role: "Research · Science",
-    p: "Grounds the fiction in real science, from rogue planets to what a spacecraft actually needs out there.",
+    p: "Did the research that keeps our world real.",
   },
 ];
 
