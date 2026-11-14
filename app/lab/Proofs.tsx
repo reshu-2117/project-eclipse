@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   PLANET,
   createGame,
@@ -13,6 +13,8 @@ import {
   testPushCmS,
   transferHours,
 } from "@/lib/game";
+
+import { CountUp } from "./fx";
 
 const r0 = (n: number) => Math.round(n).toLocaleString("en-US");
 const r1 = (n: number) => (Math.round(n * 10) / 10).toLocaleString("en-US");
@@ -132,9 +134,31 @@ export function useProofs(): Proof[] {
   }, []);
 }
 
+const FILTERS: { id: Tag | "all"; label: string; note: string }[] = [
+  { id: "all", label: "All", note: "Hover a segment to find its card, or a card to find its segment." },
+  { id: "real", label: "Real", note: "Published formulas and NASA figures. The engine reaches the same answer." },
+  { id: "game", label: "Game value", note: "Our own balance choices, labelled so nobody mistakes them for NASA data." },
+  { id: "fiction", label: "Fiction", note: "Extrapolation: the ice push is built on lab work, then scaled to a Lantern." },
+];
+
+const R = 78;
+const seg = (i: number, n: number) => {
+  const step = 360 / n;
+  const pt = (deg: number) => {
+    const a = (deg * Math.PI) / 180;
+    return `${(100 + R * Math.cos(a)).toFixed(2)} ${(100 + R * Math.sin(a)).toFixed(2)}`;
+  };
+  return `M${pt(-90 + i * step + 4)} A${R} ${R} 0 0 1 ${pt(-90 + (i + 1) * step - 4)}`;
+};
+
 export default function Proofs() {
   const proofs = useProofs();
+  const [filter, setFilter] = useState<Tag | "all">("all");
+  const [hot, setHot] = useState<number | null>(null);
   const passed = proofs.filter((p) => p.ok).length;
+  const count = (t: Tag) => proofs.filter((p) => p.tag === t).length;
+  const note = FILTERS.find((f) => f.id === filter)!.note;
+  const on = (p: Proof) => filter === "all" || p.tag === filter;
   return (
     <section className="lb-sec" id="proofs" aria-labelledby="proofs-title">
       <header className="lb-sec-head">
@@ -145,30 +169,86 @@ export default function Proofs() {
           Every number, <em>re-derived.</em>
         </h2>
         <p>
-          The engine never copies a number from our handbook. It computes each one from the real formula, and these cards compare the two in your browser,
+          The engine never copies a number from our handbook. It computes each one from the real formula, and this board compares the two in your browser,
           right now. <b>
             {passed} of {proofs.length}
           </b>{" "}
           match.
         </p>
       </header>
-      <ul className="lb-proofs">
-        {proofs.map((p) => (
-          <li key={p.what} className={p.ok ? "ok" : "off"}>
-            <div className="lb-proof-top">
-              <span>{p.what}</span>
-              <i className={`hg-tag ${p.tag}`}>{TAG[p.tag]}</i>
+
+      <div className="lb-pb">
+        <aside className="lb-verdict" aria-label="Verdict">
+          <div className="lb-ring">
+            <svg viewBox="0 0 200 200" aria-hidden="true">
+              <circle cx="100" cy="100" r={R + 16} className="lb-ring-halo" />
+              <circle cx="100" cy="100" r={R - 14} className="lb-ring-inner" />
+              {proofs.map((p, i) => (
+                <path
+                  key={p.what}
+                  d={seg(i, proofs.length)}
+                  className={`lb-seg${p.ok ? "" : " off"}${on(p) ? "" : " dim"}${hot === i ? " hot" : ""}`}
+                  style={{ ["--i" as string]: i }}
+                  onMouseEnter={() => setHot(i)}
+                  onMouseLeave={() => setHot(null)}
+                />
+              ))}
+            </svg>
+            <div className="lb-ring-c">
+              <b>
+                <CountUp to={passed} />
+              </b>
+              <span>of {proofs.length} match</span>
             </div>
-            <code>{p.formula}</code>
-            <div className="lb-proof-vals">
-              <b>{p.engine}</b>
-              <small>handbook says {p.book}</small>
-              <em>{p.ok ? "✓ match" : "✗ off"}</em>
-            </div>
-            <p>{p.note}</p>
-          </li>
-        ))}
-      </ul>
+          </div>
+          <div className="lb-filter" role="group" aria-label="Show proofs by source">
+            {FILTERS.map((f) => (
+              <button key={f.id} type="button" className={filter === f.id ? "on" : ""} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
+                {f.label}
+                <small>{f.id === "all" ? proofs.length : count(f.id)}</small>
+              </button>
+            ))}
+          </div>
+          <p className="lb-verdict-note" aria-live="polite">
+            {note}
+          </p>
+        </aside>
+
+        <ol className="lb-proofs">
+          {proofs.map((p, i) => (
+            <li
+              key={p.what}
+              className={`${p.ok ? "ok" : "off"}${on(p) ? "" : " dim"}${hot === i ? " hot" : ""}`}
+              onMouseEnter={() => setHot(i)}
+              onMouseLeave={() => setHot(null)}
+            >
+              <span className="lb-proof-n" aria-hidden="true">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <div className="lb-proof-top">
+                <h3>{p.what}</h3>
+                <i className={`hg-tag ${p.tag}`}>{TAG[p.tag]}</i>
+              </div>
+              <code>{p.formula}</code>
+              <div className="lb-proof-vals">
+                <div>
+                  <small>The engine computes</small>
+                  <b>{p.engine}</b>
+                </div>
+                <div>
+                  <small>The handbook says</small>
+                  <span>{p.book}</span>
+                </div>
+                <svg className="lb-check" viewBox="0 0 24 24" aria-label={p.ok ? "match" : "off"} role="img">
+                  <circle cx="12" cy="12" r="10.5" />
+                  {p.ok ? <path d="M7 12.5l3.2 3.2L17 9" /> : <path d="M8 8l8 8M16 8l-8 8" />}
+                </svg>
+              </div>
+              <p>{p.note}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
     </section>
   );
 }

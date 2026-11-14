@@ -6,13 +6,13 @@ import { useReducedMotion } from "../mission/Opening";
 /** things that rise into view as the page scrolls; the lab wraps these once, so every section gets the same motion */
 const REVEAL = [
   ".lb-sec-head",
-  ".lb-proofs > li",
+  ".lb-pb",
   ".lb-ship",
   ".lb-matrix-wrap",
   ".lb-cta-line",
   ".lb-crew-layout",
-  ".lb-endings > li",
-  ".lb-rules > details",
+  ".lb-spectrum, .lb-ed",
+  ".lb-tabs, .lb-panel",
   ".lb-foot p",
 ].join(",");
 

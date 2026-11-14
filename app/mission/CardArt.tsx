@@ -1,4 +1,5 @@
 import type { EventId } from "@/lib/game";
+import "./cardart.css";
 
 /**
  * A small animated scene for each event card, drawn in code (320 x 150). Cold blue for the world, amber for light
