@@ -143,7 +143,9 @@ export function fastIntercept(target = ORBIT.fastDv) {
 }
 
 /** Build the nominal flight for a route. */
-export function buildScenario(route: RouteId): Scenario {
+export function buildScenario(route: RouteId, lead = LEAD_S, burnSeconds: (dv: number) => number = () => 0): Scenario {
+  /** Time between the centres of two back-to-back burns: both must finish, then 60 s to turn the ship. */
+  const gap = (dvA: number, dvB: number) => Math.max(90, burnSeconds(dvA) / 2 + burnSeconds(dvB) / 2 + 60);
   const H: V3 = [0, 0, 1]; // Lantern 17's orbit normal
   const r1 = R_WICK;
   const r2 = R_L17;
@@ -154,7 +156,7 @@ export function buildScenario(route: RouteId): Scenario {
 
   if (route === "fastOut" || route === "fastBoth") {
     const fi = fastIntercept();
-    const t1 = LEAD_S;
+    const t1 = lead;
     const tArr = t1 + fi.tof;
     // ship starts so that at t1 it is at angle 0
     const ship0 = circularState(r1, -n(r1) * t1);
@@ -191,17 +193,18 @@ export function buildScenario(route: RouteId): Scenario {
   const ph = phasing(r2, lagAngle, N);
   const skip = route === "skipWindow";
   const inc = skip ? 10 * DEG : 0;
-  const tDep = LEAD_S;
+  const tDep = lead;
   const tCirc = tDep + hoh.tof;
   // the ship departs at angle π (in its own plane) so it arrives on the +x axis: the line of nodes
-  // When the plane must change, the burn happens 90 s after the climb, on the line where the two planes
-  // cross (the x axis), so the ship reaches the top of its climb 90 s short of it.
-  const before = skip ? n(r2) * 90 : 0;
+  // When the plane must change, the burn happens just after the climb, on the line where the two planes
+  // cross (the x axis), so the ship reaches the top of its climb that much short of it.
+  const before = skip ? n(r2) * gap(hoh.dv2, 2 * vCirc(r2) * Math.sin(inc / 2)) : 0;
   const ship0 = circularState(r1, Math.PI - before - n(r1) * tDep, inc);
   const shipH = unit(cross(ship0.r, ship0.v));
   // Gaps between back-to-back burns, so each finishes before the next starts.
-  const tPlane = tCirc + 90;
-  const tDown = (skip ? tPlane : tCirc) + 90;
+  const planeDv = skip ? 2 * vCirc(r2) * Math.sin(inc / 2) : 0;
+  const tPlane = tCirc + gap(hoh.dv2, planeDv);
+  const tDown = skip ? tPlane + gap(planeDv, ph.dv) : tCirc + gap(hoh.dv2, ph.dv);
   const tUp = tDown + N * ph.Tp;
 
   // nominal trajectory, impulsive burns
@@ -389,6 +392,23 @@ export function phaseBurn(s: State, dt: number, aimR: V3, nominal: number): V3 |
   return scale(pro, (lo + hi) / 2);
 }
 
+/**
+ * The velocity, at the ship's position, of an orbit with Lantern 17's size and angular momentum in the
+ * given plane. At 1,000 km that is plain circular; a little off that height it keeps the right period
+ * (so phasing works out) instead of locking in a slightly wrong circle. A long burn steering to this
+ * ends on the right orbit even though it can't happen at one point.
+ */
+export function onL17Orbit(s: State, planeH: V3): V3 {
+  const r = norm(s.r);
+  const rHat = unit(s.r);
+  const tHat = unit(cross(planeH, s.r));
+  const h = Math.sqrt(MU * R_L17);
+  const vt = h / r;
+  const vr2 = (2 * MU) / r - MU / R_L17 - vt * vt;
+  const vr = vr2 > 0 ? Math.sqrt(vr2) * Math.sign(dot(s.v, rHat) || 1) : 0;
+  return add(scale(tHat, vt), scale(rHat, vr));
+}
+
 /** Shooting that must hit: the Δv, or null when the target can't be reached within 5 m. */
 export function shoot(s: State, dt: number, aimR: V3, guess: V3 = [0, 0, 0]): V3 | null {
   const r = shootLM(s, dt, aimR, guess);
@@ -402,7 +422,7 @@ export function shoot(s: State, dt: number, aimR: V3, guess: V3 = [0, 0, 0]): V3
 export function nodeDv(sc: Scenario, node: PlanNode, s: State, t: number, guess?: V3): V3 | null {
   switch (node.how.type) {
     case "circular":
-      return sub(circularVelocity(s.r, node.how.planeH), s.v);
+      return sub(onL17Orbit(s, node.how.planeH), s.v);
     case "rendezvous":
       return sub(approachAt(sc, t).v, s.v);
     case "aim": {
@@ -412,13 +432,20 @@ export function nodeDv(sc: Scenario, node: PlanNode, s: State, t: number, guess?
         const along = guess ? dot(guess, frameOf(s).pro) : node.kind === "phaseDown" ? -node.dv : node.dv;
         return phaseBurn(s, node.how.aimT - t, node.how.aimR, along);
       }
-      let g = guess;
-      if (!g) {
-        const sol = lambert(s.r, node.how.aimR, node.how.aimT - t, unit(cross(s.r, s.v)));
-        g = sol && node.how.aimT - t < 0.9 * Math.PI * 2 * Math.sqrt(norm(s.r) ** 3 / MU) ? sub(sol.v1, s.v) : scale(frameOf(s).pro, node.kind === "phaseDown" ? -node.dv : node.dv);
+      const dt = node.how.aimT - t;
+      const guesses: V3[] = [];
+      if (guess) guesses.push(guess);
+      guesses.push(scale(frameOf(s).pro, node.dv));
+      const sol = lambert(s.r, node.how.aimR, dt, unit(cross(s.r, s.v)));
+      if (sol) guesses.push(sub(sol.v1, s.v));
+      let best: { dv: V3; miss: number } | null = null;
+      const score = (x: { dv: V3; miss: number }) => (x.miss > 50 ? 1e6 + x.miss : 0) + norm(x.dv);
+      for (const g of guesses) {
+        const r = shootLM(s, dt, node.how.aimR, g);
+        if (r && (!best || score(r) < score(best))) best = r;
+        if (best && best.miss < 1 && norm(best.dv) < node.dv * 1.5 + 20) break;
       }
-      const r = shootLM(s, node.how.aimT - t, node.how.aimR, g);
-      return r ? r.dv : null;
+      return best ? best.dv : null;
     }
   }
 }
@@ -431,8 +458,8 @@ export function replan(sc: Scenario, s: State, t: number, terminal = false): { n
   const H = unit(cross(sc.l17at0.r, sc.l17at0.v));
   const start = t + 90;
   const at = propagate(s, start - t);
-  let best: { tof: number; dv: number; aim: State; dvA: number; dvB: number } | null = null;
-  for (let tof = terminal ? 20 * 60 : 15 * 60; tof <= (terminal ? 70 * 60 : 3 * 3600); tof += 60) {
+  let best: { tof: number; dv: number; aim: State; dvA: number; dvB: number; score: number } | null = null;
+  for (let tof = terminal ? 12 * 60 : 15 * 60; tof <= (terminal ? 90 * 60 : 3 * 3600); tof += 60) {
     const aim = approachAt(sc, start + tof);
     const sol = lambert(at.r, aim.r, tof, H);
     if (!sol) continue;
@@ -445,7 +472,9 @@ export function replan(sc: Scenario, s: State, t: number, terminal = false): { n
     if (peri < (PLANET.radiusKm + 150) * 1e3) continue; // would graze the atmosphere
     const dvA = norm(sub(sol.v1, at.v));
     const dvB = norm(sub(aim.v, sol.v2));
-    if (!best || dvA + dvB < best.dv) best = { tof, dv: dvA + dvB, aim, dvA, dvB };
+    // the cheapest, but time counts too: an hour is worth 3 m/s
+    const score = dvA + dvB + (tof / 3600) * 3;
+    if (!best || score < best.score) best = { tof, dv: dvA + dvB, aim, dvA, dvB, score };
   }
   if (!best) return null;
   const nodes: PlanNode[] = [
