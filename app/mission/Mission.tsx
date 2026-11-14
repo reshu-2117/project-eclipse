@@ -23,6 +23,7 @@ import Hangar from "./Hangar";
 import Journey from "./Journey";
 import Route from "./Route";
 import Station from "./Station";
+import { actionsTo } from "./shortcut";
 
 // ───────────────────────────── saved runs ─────────────────────────────
 
@@ -189,12 +190,14 @@ function Gate({
   canContinue,
   onBegin,
   onContinue,
+  onSkip,
 }: {
   settings: Settings;
   set: (s: Settings) => void;
   canContinue: boolean;
   onBegin: () => void;
   onContinue: () => void;
+  onSkip: () => void;
 }) {
   return (
     <main className="ms-gate" id="main">
@@ -220,6 +223,9 @@ function Gate({
           )}
         </div>
         <Toggles settings={settings} set={set} />
+        <p className="ms-gate-skip">
+          Reviewing? <button type="button" onClick={onSkip}>Skip ahead to the station</button>. The ship is built and flown for you, through the same rules.
+        </p>
         <p className="ms-gate-small">Best with sound. Both switches can be changed at any time.</p>
         <p className="ms-gate-fine">
           {DISCLAIMER} {CREDITS_VOICE}
@@ -375,6 +381,23 @@ export default function Mission() {
     setPlaying(true);
   };
 
+  /** Jump to the station (or, with ?start=choice, to the big choice) on a ship and route chosen for the reviewer. */
+  const skip = useCallback(
+    (target: "station" | "choice" = "station") => {
+      sound.unlock();
+      sound.setEnabled(settings.sound);
+      sound.swell(110);
+      said.current.clear();
+      const q = Number(new URLSearchParams(window.location.search).get("seed"));
+      const seed = Number.isFinite(q) && q > 0 ? Math.floor(q) : (Date.now() % 900000) + 1;
+      const { actions, state } = actionsTo(seed, target);
+      commit({ v: 1, seed, actions }, state);
+      setWorking(target === "station");
+      setPlaying(true);
+    },
+    [commit, sound, settings.sound],
+  );
+
   const resume = () => {
     if (!saved) return begin();
     sound.unlock();
@@ -412,7 +435,7 @@ export default function Mission() {
   if (!playing) {
     return (
       <div className="ms">
-        <Gate settings={settings} set={setSettings} canContinue={!!saved} onBegin={begin} onContinue={resume} />
+        <Gate settings={settings} set={setSettings} canContinue={!!saved} onBegin={begin} onContinue={resume} onSkip={() => skip("station")} />
       </div>
     );
   }

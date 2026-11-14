@@ -2081,3 +2081,23 @@
     transition: none;
   }
 }
+
+/* the reviewer's shortcut on the start screen */
+.ms-gate-skip {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--dim);
+}
+.ms-gate-skip button {
+  font: inherit;
+  color: var(--amber);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 181, 71, 0.5);
+  padding: 0;
+  cursor: pointer;
+}
+.ms-gate-skip button:hover {
+  color: var(--amber-soft);
+}
