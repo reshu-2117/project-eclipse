@@ -93,7 +93,7 @@ const HLS = [
   para([
     b("What we built: "),
     t(
-      "a complete, tested mission engine (hulls and parts, five routes, eight event cards, Lantern 17’s six zones, clues and competing explanations, the test beam, the big choice, the broadcast and eight endings); the Mission Lab, a live page that runs that engine in the browser; the first playable stages: the Wick, where the player builds a ship from three hulls and 24 parts on a live blueprint and passes a readiness review, then a route screen and the flight to Lantern 17 with eight event cards; and the front end, with a WebGL planet lit only by its 24 Lanterns, a 3D orbit simulation of Lantern 17 and a Lantern network board. The remaining stages are being built on the same engine one at a time.",
+      "a complete, tested mission engine (hulls and parts, five routes, eight event cards, Lantern 17’s six zones, clues and competing explanations, the test beam, the big choice, the broadcast and eight endings); the Mission Lab, a live proof page that runs that engine in the browser (ten handbook numbers re-derived, three ships against five routes, nine scripted crews with interactive charts, all eight endings, and the game’s data laid open); the first playable stages: the Wick, where the player builds a ship from three hulls and 24 parts on a live blueprint and passes a readiness review, then a route screen and the flight to Lantern 17 with eight animated event cards; and the front end, with a WebGL planet lit only by its 24 Lanterns, the same planet and Lantern network shown on the flight map and the Lab in the phase the mission is in (failing, in the Eclipse, dark or restored), a 3D orbit simulation of Lantern 17 and a Lantern network board. The remaining stages are being built on the same engine one at a time.",
     ),
   ]),
   para([
@@ -108,7 +108,7 @@ const LINKS = [
   para([
     b("Demo Link: "),
     link("https://project-eclipse-new.vercel.app/lab"),
-    t(" (live and interactive: build a ship and watch the numbers change, then watch nine scripted crews play full missions to every ending)."),
+    t(" (live and interactive: every handbook number re-derived in your browser, three ships tested against five routes, and nine scripted crews flying whole missions to every ending, with a scrubbable chart of each)."),
   ]),
   para([b("Project Link: "), link("https://project-eclipse-new.vercel.app")]),
   para([b("Playable stages (hangar, route, flight to Lantern 17): "), link("https://project-eclipse-new.vercel.app/mission")]),
@@ -130,7 +130,7 @@ const DETAILS = [
   bullet([b("Five meters run the whole game: "), t("Δv (speed budget), Energy, Time (two clocks), Evidence (0 to 100) and City light (four settlements’ reserves). Every action moves at least one of them.")]),
   bullet([b("The twist is earned, not given: "), t("the player gathers six clues, rules out two wrong explanations (“sensor error”, “something else hit it”), and only then unlocks the test that proves the real cause: Lantern 17’s cracked mirror focuses light well enough to push ice.")]),
   bullet([b("Eight endings: "), t("decided by what the player proved, what they packed and whether it arrived in time. Station, cities and crew are scored separately, because scientific success and operational success are not always the same thing.")]),
-  para([b("Current status: "), t("the game engine, the Mission Lab (our live demo), the front end and the first playable stages at /mission are built and deployed. In the hangar a player picks a hull and parts, watches Δv, mass, energy and budget change, passes a readiness review and launches. Then they choose a route (time against fuel), fly it through three random event cards (eight different cards exist) and dock at Lantern 17. The opening and briefing are partly built. Working at the station, the evidence board, the test, the big choice, the broadcast and the debrief screens are designed and planned to be built on the same engine.")], { spacing: { before: 80, after: 80 } }),
+  para([b("Current status: "), t("the game engine, the Mission Lab (our live demo), the front end and the first playable stages at /mission are built and deployed. In the hangar a player picks a hull and parts, watches Δv, mass, energy and budget change, passes a readiness review and launches with a spoken briefing from the Director. Then they choose a route (time against fuel) on a flight map, fly it through three random event cards (eight different cards exist) and dock at Lantern 17. Running out of fuel on the way ends the mission on a full result screen. Working at the station, the evidence board, the test, the big choice, the broadcast and the in-game debrief are designed and planned to be built on the same engine; the opening and briefing scenes are built but not yet connected. A separate demo deck or video has not been produced yet.")], { spacing: { before: 80, after: 80 } }),
 
   label("How does it work?"),
   step([b("Story and rules as data. "), t("Hulls, parts, routes, event cards, zones, clues and endings are plain data tables. Each row says what it gives you and what it costs you, and is tagged real, game value or fiction.")]),
@@ -148,7 +148,7 @@ const DETAILS = [
   bullet([b("Learning by consequence: "), t("a player feels mass against fuel, speed against safety, and power against science, instead of memorising them.")]),
   bullet([b("Honest about science: "), t("each value is tagged real, game value or fiction, and the game carries a disclaimer saying values are simplified for learning.")]),
   bullet([b("Transparent and replayable: "), t("every run is a seed plus a list of choices, and the debrief explains what each choice cost and what a better one would have cost.")]),
-  bullet([b("Accessible: "), t("it runs in any modern browser with no install, and the Mission Lab was checked at desktop and phone widths.")]),
+  bullet([b("Accessible: "), t("it runs in any modern browser with no install, the Mission Lab and the playable stages were checked at desktop and phone widths and with the keyboard alone, and the animation switches off for people who ask their device for reduced motion.")]),
   bullet([b("Extensible: "), t("balance numbers live in one file, and a new hull, part, card or ending is a new row of data.")]),
 
   label("What do you hope to achieve?"),
@@ -166,7 +166,7 @@ const DETAILS = [
   bullet([b("Testing: "), t("Vitest, plus an independent orbit-collision check (npm run verify:orbits).")]),
   bullet([b("Fonts: "), t("Cormorant Garamond, Inter and JetBrains Mono, self-hosted with Fontsource.")]),
   bullet([b("Hosting and code: "), t("GitHub and Vercel (every push to the main branch deploys). No special hardware is needed to play.")]),
-  bullet([b("AI assistants: "), t("Claude (brainstorming and coding, through Claude Code), ChatGPT (research) and ElevenLabs (the Director’s and the crew’s voices). See Use of AI.")]),
+  bullet([b("AI assistants: "), t("Claude (brainstorming and coding, through Claude Code), ChatGPT (research) and ElevenLabs (the Director’s, the narrator’s and the other crew’s voices). See Use of AI.")]),
 ];
 
 const AI = [
@@ -228,7 +228,7 @@ const REFS = [
 ];
 
 // ---------- document ----------
-const logo = fs.readFileSync(SCRATCH + "/tpl/un/word/media/image1.png");
+const logo = fs.readFileSync(SCRATCH + "/tpl/un2/word/media/image1.png");
 
 const doc = new Document({
   creator: "Project Eclipse team",
@@ -294,7 +294,7 @@ const doc = new Document({
 });
 
 Packer.toBuffer(doc).then((buf) => {
-  const out = SCRATCH + "/Project_Eclipse_Components_of_Project_2026.docx";
+  const out = process.argv[2] || SCRATCH + "/Project_Eclipse_Components_of_Project_2026.docx";
   fs.writeFileSync(out, buf);
   console.log("wrote", out, buf.length);
 });
