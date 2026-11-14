@@ -1,19 +1,18 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, type CSSProperties } from "react";
 import Hud from "./Hud";
 import Hero from "./Hero";
 import Network from "./Network";
 import OrbitalSection from "./OrbitalSection";
 import Transmission from "./Transmission";
-import MissionDesigner, { type CraftId, type ObjectiveId } from "./MissionDesigner";
+import BeginMission from "./BeginMission";
 import LabTeaser from "./LabTeaser";
 import { Crew, Footer, Systems, World } from "./Sections";
 
 export default function Eclipse() {
-  const [obj, setObj] = useState<ObjectiveId | null>(null);
-  const [craft, setCraft] = useState<CraftId | null>(null);
-  const [lit17, setLit17] = useState(false);
+  // Lantern 17 stays failing until the player brings it back; the repair itself is the game's later chapters
+  const lit17 = false;
 
   // Scroll reveal
   useEffect(() => {
@@ -37,8 +36,7 @@ export default function Eclipse() {
     return () => io.disconnect();
   }, []);
 
-  // The page warms up as the player makes choices and relights the Lantern.
-  const warmth = 0.06 + (obj ? 0.05 : 0) + (craft ? 0.05 : 0) + (lit17 ? 0.12 : 0);
+  const warmth = 0.06;
   const rootStyle = { "--warmth": warmth } as CSSProperties;
 
   return (
@@ -46,21 +44,14 @@ export default function Eclipse() {
       <a className="skip" href="#main">
         Skip to content
       </a>
-      <Hud lit17={lit17} ready={!!obj && !!craft} />
+      <Hud lit17={lit17} ready={false} />
       <main id="main">
         <Hero lit17={lit17} />
         <World />
         <Network lit17={lit17} />
         <OrbitalSection lit17={lit17} />
         <Transmission />
-        <MissionDesigner
-          obj={obj}
-          craft={craft}
-          lit17={lit17}
-          onObj={setObj}
-          onCraft={setCraft}
-          onAuthorise={() => setLit17(true)}
-        />
+        <BeginMission />
         <LabTeaser />
         <Systems />
         <Crew />

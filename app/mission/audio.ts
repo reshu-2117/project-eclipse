@@ -188,6 +188,93 @@ export class Sound {
     }
   }
 
+  /** A soft click: picking an option. */
+  click() {
+    const ctx = this.ctx;
+    if (!ctx || !this.master || !this.enabled) return;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(660, t);
+    o.frequency.exponentialRampToValueAtTime(420, t + 0.05);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.045, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+    o.connect(g).connect(this.master);
+    o.start(t);
+    o.stop(t + 0.08);
+  }
+
+  /** A part locking into the hull: a low thunk and a metal tick. */
+  lock() {
+    const ctx = this.ctx;
+    if (!ctx || !this.master || !this.enabled) return;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(130, t);
+    o.frequency.exponentialRampToValueAtTime(58, t + 0.16);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.28, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    o.connect(g).connect(this.master);
+    o.start(t);
+    o.stop(t + 0.25);
+    const m = ctx.createOscillator();
+    m.type = "square";
+    m.frequency.value = 2300;
+    const mg = ctx.createGain();
+    mg.gain.setValueAtTime(0.02, t);
+    mg.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+    m.connect(mg).connect(this.master);
+    m.start(t);
+    m.stop(t + 0.04);
+  }
+
+  /** The engine refusing: a short, flat buzz. */
+  reject() {
+    const ctx = this.ctx;
+    if (!ctx || !this.master || !this.enabled) return;
+    const t = ctx.currentTime;
+    for (const f of [170, 181]) {
+      const o = ctx.createOscillator();
+      o.type = "square";
+      o.frequency.value = f;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.03, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      o.connect(g).connect(this.master);
+      o.start(t);
+      o.stop(t + 0.18);
+    }
+  }
+
+  /** The launch gantry powering up: a rising sweep and a boom. */
+  launch() {
+    const ctx = this.ctx;
+    if (!ctx || !this.master || !this.enabled) return;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(48, t);
+    o.frequency.exponentialRampToValueAtTime(380, t + 2.4);
+    const f = ctx.createBiquadFilter();
+    f.type = "lowpass";
+    f.frequency.setValueAtTime(140, t);
+    f.frequency.exponentialRampToValueAtTime(2400, t + 2.4);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.09, t + 0.5);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 2.8);
+    o.connect(f).connect(g).connect(this.master);
+    o.start(t);
+    o.stop(t + 2.9);
+    this.thump(0.55);
+  }
+
   /** A single soft bell: an HUD meter lighting up. */
   ping(freq = 880) {
     const ctx = this.ctx;

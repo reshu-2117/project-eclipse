@@ -6,6 +6,7 @@ export * from "./loadout";
 export * from "./actions";
 export * from "./debrief";
 export * from "./strategies";
+export * from "./presets";
 export { HULLS, ENGINES, POWER, SHIELDS, SENSORS, COMMS, KIT, ADDONS, SUITS, MOBILITY, STANDARD_TENDER } from "./data/ship";
 export { ROUTES, ROUTE_ORDER, ORBIT, routeTotals } from "./data/routes";
 export { EVENTS, EVENT_IDS } from "./data/events";

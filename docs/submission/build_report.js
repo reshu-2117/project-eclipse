@@ -93,7 +93,7 @@ const HLS = [
   para([
     b("What we built: "),
     t(
-      "a complete, tested mission engine (hulls and parts, five routes, eight event cards, Lantern 17’s six zones, clues and competing explanations, the test beam, the big choice, the broadcast and eight endings); the Mission Lab, a live page that runs that engine in the browser; and the front end, with a WebGL planet lit only by its 24 Lanterns, a 3D orbit simulation of Lantern 17 and a Lantern network board. The player-facing mission screens are being built on top of the engine one stage at a time.",
+      "a complete, tested mission engine (hulls and parts, five routes, eight event cards, Lantern 17’s six zones, clues and competing explanations, the test beam, the big choice, the broadcast and eight endings); the Mission Lab, a live page that runs that engine in the browser; the Wick, the first playable stage, where the player builds a ship from three hulls and 24 parts on a live blueprint, passes a readiness review and launches; and the front end, with a WebGL planet lit only by its 24 Lanterns, a 3D orbit simulation of Lantern 17 and a Lantern network board. The remaining stages are being built on the same engine one at a time.",
     ),
   ]),
   para([
@@ -111,6 +111,7 @@ const LINKS = [
     t(" (live and interactive: build a ship and watch the numbers change, then watch nine scripted crews play full missions to every ending)."),
   ]),
   para([b("Project Link: "), link("https://project-eclipse-new.vercel.app")]),
+  para([b("Playable stage (the Wick hangar): "), link("https://project-eclipse-new.vercel.app/mission")]),
   para([
     b("Source code: "),
     link("https://github.com/reshu-2117/project-eclipse"),
@@ -129,7 +130,7 @@ const DETAILS = [
   bullet([b("Five meters run the whole game: "), t("Δv (speed budget), Energy, Time (two clocks), Evidence (0 to 100) and City light (four settlements’ reserves). Every action moves at least one of them.")]),
   bullet([b("The twist is earned, not given: "), t("the player gathers six clues, rules out two wrong explanations (“sensor error”, “something else hit it”), and only then unlocks the test that proves the real cause: Lantern 17’s cracked mirror focuses light well enough to push ice.")]),
   bullet([b("Eight endings: "), t("decided by what the player proved, what they packed and whether it arrived in time. Station, cities and crew are scored separately, because scientific success and operational success are not always the same thing.")]),
-  para([b("Current status: "), t("the game engine, the Mission Lab (our live demo) and the front end are built and deployed. The first player-facing stage, the opening and briefing with narration, is partly built (the scenes are drawn and the narration is recorded) but is not playable yet. The remaining stages (hangar, journey, station, evidence board, test, broadcast and debrief) are designed and planned to be built on the same engine.")], { spacing: { before: 80, after: 80 } }),
+  para([b("Current status: "), t("the game engine, the Mission Lab (our live demo), the front end and the first playable stage, the Wick hangar at /mission, are built and deployed. In the hangar a player picks a hull and parts, watches Δv, mass, energy and budget change, passes a readiness review and launches. The opening and briefing are partly built. The route, journey, station, evidence board, test, broadcast and debrief are designed and planned to be built on the same engine.")], { spacing: { before: 80, after: 80 } }),
 
   label("How does it work?"),
   step([b("Story and rules as data. "), t("Hulls, parts, routes, event cards, zones, clues and endings are plain data tables. Each row says what it gives you and what it costs you, and is tagged real, game value or fiction.")]),
@@ -140,7 +141,7 @@ const DETAILS = [
   bullet([b("Power and time: "), t("life support and computers draw 3 kW; engine heaters, sensors and radios draw more; cryogenic fuel boils away about 2% every 6 hours; two clocks run (the ice arrives at hour 30, and the reactor shuts down at hour 20 if a hidden ammonia leak is not patched); and a six-hour Eclipse every 24 hours slows communications to a quarter.")], 1),
   bullet([b("Evidence and the test: "), t("a 10 kW beam for 60 seconds pushes a 482 kg ice block about 6 cm/s. How sure the player can be depends on their best sensor (camera ±60%, lidar ±15%, radar ±3%). Deflecting the 100 m station-killer grows with beam time squared, so one Lantern needs about 21 hours to move it 1.5 km. Arriving late costs the chance to save the station.")], 1),
   bullet([b("Communications: "), t("transfer time = packet size ÷ link speed. A 200 MB proof takes 1 h 44 min on a small radio and 2.7 minutes on a 10 Mbps dish.")], 1),
-  step([b("Verification. "), t("53 automated tests re-derive every physics number in our Game Systems Handbook from first principles, check the rules, and play nine scripted crews through full missions to prove that all eight endings can be reached. The live Mission Lab shows ten of ten handbook numbers matching the engine.")]),
+  step([b("Verification. "), t("58 automated tests re-derive every physics number in our Game Systems Handbook from first principles, check the rules, and play nine scripted crews through full missions to prove that all eight endings can be reached. The live Mission Lab shows ten of ten handbook numbers matching the engine.")]),
   step([b("Front end. "), t("The planet is a WebGL shader lit only by its 24 Lanterns (inverse-square falloff, a specular glint on the ice, blue subsurface scatter). The Lanterns fly a Walker-delta constellation, the pattern Galileo navigation satellites use. The 3D orbital view of Lantern 17 follows 63 objects on analytic Kepler orbits and is checked so that no two paths ever come within their safety zones.")]),
 
   label("What benefits does it have?"),
@@ -165,7 +166,7 @@ const DETAILS = [
   bullet([b("Testing: "), t("Vitest, plus an independent orbit-collision check (npm run verify:orbits).")]),
   bullet([b("Fonts: "), t("Cormorant Garamond, Inter and JetBrains Mono, self-hosted with Fontsource.")]),
   bullet([b("Hosting and code: "), t("GitHub and Vercel (every push to the main branch deploys). No special hardware is needed to play.")]),
-  bullet([b("AI assistants: "), t("Claude (brainstorming and coding, through Claude Code) and ChatGPT (research). See Use of AI.")]),
+  bullet([b("AI assistants: "), t("Claude (brainstorming and coding, through Claude Code), ChatGPT (research) and ElevenLabs (the Director’s voice). See Use of AI.")]),
 ];
 
 const AI = [
@@ -178,7 +179,7 @@ const AI = [
   ]),
   bullet([b("ChatGPT (OpenAI): "), t("used for research into the real spacecraft, orbital and hazard figures behind the game’s numbers. We then checked the numbers that matter in code: our tests re-derive them from first principles.")]),
   bullet([b("Images and video: "), t("no generative AI images or video. Every visual is drawn in code (a WebGL shader, canvas and SVG) or is a procedural texture made by a script.")]),
-  bullet([b("Audio: "), t("none is included at this time.")]),
+  bullet([b("Audio: "), t("the Director’s voice lines in the Wick hangar are AI-generated with ElevenLabs text-to-speech. Each audio file says so in its metadata, the game’s start screen says so, and the README explains how they are made. All other sound (the ambient hum and the click and launch cues) is synthesised in the browser by our own code.")]),
   bullet([b("Team documents: "), t("AI assisted the brainstorming (Claude) and the research (ChatGPT) behind our World-Building Dossier, Game Systems Handbook and pitch decks.")]),
 ];
 
@@ -220,7 +221,7 @@ const REFS = [
   bullet([t("Idaho National Laboratory, MMRTG cost report INL/EXT-16-40218: "), link("https://inldigitallibrary.inl.gov")], 1),
   bullet([t("Background on EMU, SAFER, AERCam Sprint and TriDAR: "), link("https://en.wikipedia.org/wiki/Extravehicular_Mobility_Unit"), t(", "), link("https://en.wikipedia.org/wiki/Simplified_Aid_For_EVA_Rescue"), t(", "), link("https://en.wikipedia.org/wiki/AERCam_Sprint"), t(", "), link("https://en.wikipedia.org/wiki/TriDAR")], 1),
   bullet([b("Code and tools:")]),
-  bullet([t("Next.js "), link("https://nextjs.org"), t(", React "), link("https://react.dev"), t(", Tailwind CSS "), link("https://tailwindcss.com"), t(", Three.js "), link("https://threejs.org"), t(", Vitest "), link("https://vitest.dev"), t(", Fontsource "), link("https://fontsource.org"), t(", GitHub "), link("https://github.com"), t(", Vercel "), link("https://vercel.com")], 1),
+  bullet([t("Next.js "), link("https://nextjs.org"), t(", React "), link("https://react.dev"), t(", Tailwind CSS "), link("https://tailwindcss.com"), t(", Three.js "), link("https://threejs.org"), t(", Vitest "), link("https://vitest.dev"), t(", Fontsource "), link("https://fontsource.org"), t(", ElevenLabs "), link("https://elevenlabs.io"), t(", GitHub "), link("https://github.com"), t(", Vercel "), link("https://vercel.com")], 1),
   bullet([b("Images and text:")]),
   bullet([t("No stock photography. Textures are procedurally generated, and the story text is the team’s own (World-Building Dossier v3).")], 1),
   bullet([t("Challenge: NASA Space Apps 2026, Space Mission Design Game: "), link("https://www.spaceappschallenge.org/2026/challenges/space-mission-design-game")], 1),

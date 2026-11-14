@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type CSSProperties, type PointerEvent } from "react";
+import Link from "next/link";
 import { createPlanetRenderer, type PlanetLight, type PlanetRenderer } from "./heroPlanet";
 
 const PLANES = 3;
@@ -425,9 +426,9 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
             spacecraft, read the evidence, and make the hard call.
           </p>
           <div className="hero-actions">
-            <a className="btn btn-lantern" href="#mission">
+            <Link className="btn btn-lantern" href="/mission">
               Begin mission <span aria-hidden="true">↗</span>
-            </a>
+            </Link>
             <a className="btn btn-ghost" href="#world">
               Explore the planet <span aria-hidden="true">↓</span>
             </a>
@@ -461,7 +462,7 @@ export default function Hero({ lit17 }: { lit17: boolean }) {
             aria-hidden="true"
           />
           <span ref={anchorRef} className="lantern-anchor">
-            <a href="#mission" className={lit17 ? "lantern-tag ok" : "lantern-tag"}>
+            <a href="/mission" className={lit17 ? "lantern-tag ok" : "lantern-tag"}>
               <i className={lit17 ? "dot dot-amber" : "dot dot-ember"} />
               L-17 · {lit17 ? "RELIT" : "DEGRADED"}
             </a>

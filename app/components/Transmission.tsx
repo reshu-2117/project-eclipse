@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const LINES: { text: string; cls?: string }[] = [
@@ -123,9 +124,9 @@ export default function Transmission() {
             <button type="button" className="btn btn-ghost" onClick={play}>
               Replay transmission
             </button>
-            <a className="btn btn-lantern" href="#mission">
-              Design the mission <span aria-hidden="true">↓</span>
-            </a>
+            <Link className="btn btn-lantern" href="/mission">
+              Enter the Wick <span aria-hidden="true">↗</span>
+            </Link>
           </div>
         </div>
       </div>

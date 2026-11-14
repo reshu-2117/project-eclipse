@@ -50,7 +50,7 @@ export default function Hud({ lit17, ready }: { lit17: boolean; ready: boolean }
           <a href="#network">Lanterns</a>
           <a href="#orbit">Orbit</a>
           <a href="#briefing">Briefing</a>
-          <a href="#mission">Mission</a>
+          <Link href="/mission">Mission</Link>
           <Link href="/lab">Lab</Link>
           <a href="#crew">Crew</a>
         </nav>

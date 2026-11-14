@@ -65,4 +65,15 @@ Tests: `npm test` (52 tests). They re-derive every handbook number, check the ru
 
 ## AI use
 
-Project Eclipse was built with AI assistance, and we declare it here as the NASA Space Apps rules ask. After the team's initial project scaffold, the code in this repository (the front end, the game engine and its tests) was written and reviewed by Claude Code (Anthropic's Claude) working from the team's design documents. Each of those commits carries a `Co-Authored-By` trailer naming it. No generative AI was used for images or video: every visual is drawn in code, and the textures are procedural. The world, story and game design come from the team's own documents (World-Building Dossier v3 and Game Systems Handbook v2). Nothing here uses NASA logos, flags or mission identifiers.
+Project Eclipse was built with AI assistance, and we declare it here as the NASA Space Apps rules ask. After the team's initial project scaffold, the code in this repository (the front end, the game engine and its tests) was written and reviewed by Claude Code (Anthropic's Claude) working from the team's design documents. Each of those commits carries a `Co-Authored-By` trailer naming it. No generative AI was used for images or video: every visual is drawn in code, and the textures are procedural. The Director's spoken lines in the hangar are AI-generated with ElevenLabs text-to-speech. Each audio file says so in its metadata, the start screen says so, and `npm run voice` (see `scripts/generate-voice.mjs`) regenerates them. The world, story and game design come from the team's own documents (World-Building Dossier v3 and Game Systems Handbook v2). Nothing here uses NASA logos, flags or mission identifiers.
+
+## The Wick (hangar) at /mission
+
+The first player-facing stage. Players build a ship in four bays (hull, parts, suits, readiness review), watch a blueprint assemble as they pick, and launch.
+
+- **Every click goes through the engine** (`app/mission/Mission.tsx` calls `step()`), so a refusal shows the engine's own reason, and the numbers on screen (Δv, mass, energy, bay, budget, route fit) are the engine's.
+- **Blueprint** (`app/mission/Blueprint.tsx`): one SVG sheet; each hull has its own outline and anchor points, and every part has a drawing that slides in and locks.
+- **Starter ships** (`lib/game/presets.ts`): three one-click builds, each proven launchable by tests.
+- **Runs are saved** in `sessionStorage` as a seed plus the list of actions, so a refresh offers "Continue your mission".
+- **Sound and voice** have separate switches (`app/mission/audio.ts`); both remembered. Sound is made in the browser; the voice lines are recorded files in `public/audio`.
+- Respects reduced motion; works with the keyboard alone and at phone width.

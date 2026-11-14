@@ -42,6 +42,24 @@
       "voice": "Sarah",
       "bytes": 54377,
       "chars": 63
+    },
+    "dir-hangar": {
+      "hash": "f94eb47a4488",
+      "voice": "Sarah",
+      "bytes": 123758,
+      "chars": 101
+    },
+    "dir-review": {
+      "hash": "f5962efc9476",
+      "voice": "Sarah",
+      "bytes": 80709,
+      "chars": 81
+    },
+    "dir-launch": {
+      "hash": "d86be6949802",
+      "voice": "Sarah",
+      "bytes": 34315,
+      "chars": 24
     }
   }
 }

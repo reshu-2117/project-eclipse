@@ -156,6 +156,25 @@ export const DIRECTOR_ACCEPT: VoiceLine = {
   text: "Then go. The Wick is waiting, and the clock is already running.",
 };
 
+/** The Director in the hangar. */
+export const HANGAR_ENTER: VoiceLine = {
+  id: "dir-hangar",
+  role: "director",
+  text: "Welcome to the Wick. Four bays, a readiness review, then the gantry. Every part you pick has a price.",
+};
+
+export const HANGAR_REVIEW: VoiceLine = {
+  id: "dir-review",
+  role: "director",
+  text: "Readiness review. Read every red flag. If you launch with them, you own the risk.",
+};
+
+export const HANGAR_LAUNCH: VoiceLine = {
+  id: "dir-launch",
+  role: "director",
+  text: "Gantry is clear. Launch.",
+};
+
 /** What the officials know, and what they don't. The player discovers the real causes; the briefing doesn't spoil them. */
 export const UNKNOWNS = [
   {
@@ -192,4 +211,11 @@ export const DISCLAIMER =
 export const CREDITS_VOICE = "Narration and Director voices generated with ElevenLabs (AI).";
 
 /** Every line that gets recorded. */
-export const ALL_LINES: VoiceLine[] = [...OPENING.map((p) => p.line), DIRECTOR_BRIEF, DIRECTOR_ACCEPT];
+export const ALL_LINES: VoiceLine[] = [
+  ...OPENING.map((p) => p.line),
+  DIRECTOR_BRIEF,
+  DIRECTOR_ACCEPT,
+  HANGAR_ENTER,
+  HANGAR_REVIEW,
+  HANGAR_LAUNCH,
+];

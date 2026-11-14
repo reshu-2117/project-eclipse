@@ -15,8 +15,7 @@ Written Saturday 14 Nov 2026 (NASA Space Apps hackathon day 1). Submission close
 
 - Repo: https://github.com/reshu-2117/project-eclipse (public, **no LICENSE file**; the Round 2 deck says "open-source", so add one or drop the claim).
 - Live site: **https://project-eclipse-new.vercel.app** (deploys from `main`; the Vercel status shows on commits via `gh api repos/reshu-2117/project-eclipse/commits/<sha>/status`).
-- **`main`** = engine + `/lab` + bug fix + README AI note. This is what is live.
-- **`claude/stoic-brahmagupta-f3uprq`** (dev branch, one commit ahead of main) = the unfinished Chunk 1 work plus this file. **Nothing here is reachable from the site** because there is no `/mission` page yet.
+- **`main`** = everything below, including the playable hangar at `/mission`. This is what is live. The dev branch `claude/stoic-brahmagupta-f3uprq` was merged into it and is identical.
 - Rule used so far: push finished, tested work to `main` (the user asked to deploy); keep unfinished work on the dev branch only.
 - `AGENTS.md` says this is a newer Next.js than training data: **read `node_modules/next/dist/docs/` before writing Next code**. Stack: Next 16.4.6, React 19.3, Tailwind 4 (loaded through a Turbopack rule in `next.config.ts`), `cacheComponents: true`, Three.js 0.187, Vitest 3.
 - CSS: this repo's CSS goes through a custom loader, so new styles were added to `app/globals.css` under a prefix (`lab-`, planned `ms-`) instead of CSS modules.
@@ -44,7 +43,7 @@ Written Saturday 14 Nov 2026 (NASA Space Apps hackathon day 1). Submission close
 | `strategies.ts` | 9 scripted crews that play whole missions (used by tests and the Lab). |
 | `data/story.ts` | **Chunk 1 text**: opening panels, briefing, Director lines, voice casting (see section 4). |
 
-**Tests**: `npm test` runs 53 tests in `lib/game/__tests__/`. They re-derive every handbook physics number, check rules and play the 9 crews to prove all 8 endings reachable. Also `npm run build`, `npx eslint lib app`, `npx tsc --noEmit` (one expected error: `LayoutProps` in `app/layout.tsx`, which goes away after `next build` generates types).
+**Tests**: `npm test` runs 58 tests in `lib/game/__tests__/`. They re-derive every handbook physics number, check rules and play the 9 crews to prove all 8 endings reachable. Also `npm run build`, `npx eslint lib app`, `npx tsc --noEmit` (one expected error: `LayoutProps` in `app/layout.tsx`, which goes away after `next build` generates types).
 
 **`/lab`** (`app/lab/`): a live demo page. Handbook-vs-engine number checks (10/10), a working hangar calculator that runs through the engine, and the 9 crews playing full missions with ending, chart, ledger and real-life cards. Styles in `app/globals.css` (`.lab-*`).
 
@@ -60,7 +59,22 @@ Written Saturday 14 Nov 2026 (NASA Space Apps hackathon day 1). Submission close
 
 A bug was fixed this session: the impact hour was logged twice (`impactLogged` flag). Check the Lab ledger shows it once.
 
-## 4. Chunk 1 (Opening + Briefing): in progress, on the dev branch only
+**Chunk 2, the Wick hangar (done, live at `/mission`)**: gate ("Enter the Wick", with Sound and Voice switches) -> hangar -> "Your ship is away" screen. Files in `app/mission/`:
+
+| File | What it holds |
+|---|---|
+| `Mission.tsx` | The shell: run state (seed + action list, saved in sessionStorage, "Continue your mission" after a refresh), top bar with the five meters, the Director's caption and voice, the gate, the post-launch screen. `act(action)` runs every click through the engine and returns the refusal reason. |
+| `Hangar.tsx` | Four bays (hull, parts, suits, readiness review), option cards with live cost previews (Δv and credits before you click), fuel slider, three starter ships, review checklist with stamp, launch gantry with a "launch anyway" step when there are warnings, launch countdown. |
+| `Blueprint.tsx` | The SVG ship sheet: three hull outlines, parts that slide in and lock, fuel level, bay overflow turns red. `HullThumb` for the hull cards. |
+| `audio.ts` | Browser-made sound (bed, click, lock, reject, launch cues) and the voice player. |
+| `mission.css` | All styles (`ms-` shell, `hg-` hangar, `bp-` blueprint). |
+| `lib/game/presets.ts` | The three starter ships and `actionsToReach` (the clicks that turn one ship into another). |
+
+Verified in a browser: all three hulls, a rejection ("The Courier has 1 sensor slot"), presets, suits, the review, the launch, refresh-and-continue, keyboard-only, reduced motion, phone width with no sideways scroll. The post-launch screen is an honest stub: the route, journey and station are not built, and it links to `/lab`.
+
+The home page now leads here: hero, menu, briefing terminal and a new "Your ship. Your trade-offs." section (`BeginMission.tsx`) all link to `/mission`. The old `MissionDesigner` placeholder was deleted.
+
+## 4. Chunk 1 (Opening + Briefing): partly built, NOT wired into `/mission`
 
 **Plan the user approved** (they said sound is on by default with separate Voice and Sound mute buttons; art made in code; build chunk by chunk, plan first):
 
@@ -78,7 +92,7 @@ A bug was fixed this session: the impact hour was logged twice (`impactLogged` f
 - `scripts/generate-voice.mjs` + `npm run voice`: records only lines whose text/voice/settings changed (hash in `public/audio/manifest.json`), tags every mp3 as AI-generated in its metadata via ffmpeg.
 - `public/audio/`: 7 recorded lines (op-1..op-5 narrator, dir-brief, dir-accept) and 6 audition clips.
 
-**Still to write**: `app/mission/Briefing.tsx`, `app/mission/Mission.tsx` (shell: stage state, persistence, HUD, sound/voice toggles, Begin gate, Wick placeholder), `app/mission/page.tsx`, `app/mission/mission.css` (or `ms-*` rules in globals), the homepage fixes, then screenshot checks at desktop and phone widths, keyboard-only and reduced-motion passes. **Not yet visually tested at all**; expect to tune the art.
+**Still to write**: `app/mission/Briefing.tsx`, and wiring `Opening` and the briefing into `Mission.tsx` before the hangar (the gate currently goes straight to the hangar; `Opening.tsx` and `art.ts` exist but are unused), then screenshot checks at desktop and phone widths, keyboard-only and reduced-motion passes. **Not yet visually tested at all**; expect to tune the art.
 
 **Voice casting** (chosen from ElevenLabs' standard voices by their descriptions; **nobody has listened to them**, I cannot hear audio):
 - Narrator = **George** (`JBFqnCBsd6RMkjVDRZzb`), warm raspy British storyteller, speed 0.8, stability 0.48. Alternates Lily, Brian.
@@ -90,8 +104,8 @@ A bug was fixed this session: the impact hour was logged twice (`impactLogged` f
 
 ## 5. Remaining chunks (each: detailed plan, user approves, then build)
 
-2. **Hangar** (the Wick): biggest visual chunk. Blueprint ship that assembles as parts are picked, live panel (Δv, mass, energy, bay, budget), readiness review stamped checklist, launch gantry. Runs on `loadout.ts` and `options()`.
-3. **Route + Journey**: 2D orbit diagram, route cards with Δv and hours ("Need 1,887 m/s, you have 1,700" in red), event cards flipping, meters animating.
+2. **Hangar** (the Wick): **DONE and live** (see section 3).
+3. **Route + Journey** (NEXT; plan already given to the user in chat, they said "start the build" for chunk 2 only): 2D orbit diagram with an arc per route; five route cards with Δv, margin and arrival time, red when over budget ("Need 1,887 m/s, you have 1,700") but still pickable after an "Are you sure?" because running dry is a real ending (the engine already ends the mission and goes to the debrief phase); the ship animates along its arc; three event cards flip from the deck (E4 always present), each choice shows cost chips and locked choices show the engine's reason; arrival and docking (lidar = clean dock, no lidar = costs fuel and time). Decisions the user has NOT answered yet, my recommendations: (a) on the route screen use a soft line ("Arrive early and you'll have time to work. Arrive late and you won't") instead of the Handbook's "deflecting needs about 21 hours of beam time", because the Dossier says the deflection idea must be discovered, not told; (b) add a third voice for the distress call; (c) animate the ship on its arc. The engine's `options(state)` and `ROUTES`/`routeFit` already supply what the cards need. The existing `Launched` stub in `Mission.tsx` is where the route screen goes. An early ending (drift past, or reactor loss) needs a result screen: extract the Lab's result view into a shared component.
 4. **The station**: interactive Lighthouse Spine drawing, survey, inspect zones by method, repairs, two clocks.
 5. **Evidence board + Test beam**: pinned clues with strings, struck-out explanations, beam and plume scene, error-bar chart.
 6. **Big choice + Broadcast**: the ice clock jump (36 h to 30 h) with alarm, A-E choice, packet and upload, network terminal ending reusing the hero constellation.
@@ -109,7 +123,7 @@ In `docs/submission/` (copies; the originals were in a temporary folder):
 **Report facts to keep true**:
 - Demo Link in the report is `https://project-eclipse-new.vercel.app/lab` (no video exists). Project Link is the site. Source is the GitHub repo.
 - "Current status" says the opening/briefing is partly built and not playable. **Update it as chunks ship.**
-- "Use of AI": Claude (brainstorming, and coding through Claude Code; every commit after the first scaffold is Claude-authored with a Co-Authored-By trailer), ChatGPT (research; the user said "start GPT-M", which I **assumed means ChatGPT, unconfirmed**). Images/video: none AI. **Audio: "none is included at this time." If the ElevenLabs narration ships, change this line** to declare ElevenLabs and keep the mp3 metadata tags.
+- "Use of AI": Claude (brainstorming, and coding through Claude Code; every commit after the first scaffold is Claude-authored with a Co-Authored-By trailer), ChatGPT (research; the user said "start GPT-M", which I **assumed means ChatGPT, unconfirmed**). Images/video: none AI. **Audio: the Director's hangar lines are ElevenLabs AI voice, and the report and README now say so** (the gate screen also credits it, and every mp3 carries an AI-generated tag in its metadata via `npm run voice`). Keep that true as voices are added.
 - NASA Data section is honest that no NASA dataset file was used, only published NASA figures; the numbers' sources come from the Handbook (p.22-24) and were not individually re-verified. Only the orbital maths was re-derived.
 - The report's year was changed from the template's 2025 to 2026.
 
@@ -135,7 +149,7 @@ In `docs/submission/` (copies; the originals were in a temporary folder):
 
 ## 9. First steps for the next session
 
-1. `git fetch && git checkout claude/stoic-brahmagupta-f3uprq`, `npm install`, `npm test` (expect 53 passing), `npm run build`.
+1. `git fetch && git checkout claude/stoic-brahmagupta-f3uprq`, `npm install`, `npm test` (expect 58 passing), `npm run build`.
 2. Ask the user one question only if needed: finish Chunk 1 now, or build the 7-slide demo first (the deadline is tonight/tomorrow).
 3. If finishing Chunk 1: write `Briefing.tsx`, `Mission.tsx`, `page.tsx`, the CSS; run it with Playwright (Chromium is preinstalled: `require('playwright')`), screenshot every panel at 1400x900 and 390x844, test keyboard-only and reduced motion; update the report's status line; merge to `main` only when it is complete and the build passes.
 4. Keep `npm test` green, and update `README.md` and the report when a chunk ships.
