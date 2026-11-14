@@ -1,0 +1,47 @@
+{
+  "model": "eleven_multilingual_v2",
+  "lines": {
+    "op-1": {
+      "hash": "92718e75a8f1",
+      "voice": "George",
+      "bytes": 71096,
+      "chars": 56
+    },
+    "op-2": {
+      "hash": "1311ab4cb404",
+      "voice": "George",
+      "bytes": 215710,
+      "chars": 167
+    },
+    "op-3": {
+      "hash": "f6788e1e16f6",
+      "voice": "George",
+      "bytes": 204843,
+      "chars": 152
+    },
+    "op-4": {
+      "hash": "dadde5302473",
+      "voice": "George",
+      "bytes": 176421,
+      "chars": 125
+    },
+    "op-5": {
+      "hash": "f7daabd0e7c6",
+      "voice": "George",
+      "bytes": 106622,
+      "chars": 87
+    },
+    "dir-brief": {
+      "hash": "f219cd6ac328",
+      "voice": "Sarah",
+      "bytes": 107876,
+      "chars": 108
+    },
+    "dir-accept": {
+      "hash": "00ad5dfb8b33",
+      "voice": "Sarah",
+      "bytes": 54377,
+      "chars": 63
+    }
+  }
+}
