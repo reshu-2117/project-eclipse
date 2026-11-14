@@ -678,10 +678,10 @@ export function createOrbitScene(opts: OrbitSceneOptions): OrbitSceneController 
   let nextTelemetry = 0;
   let nextStats = 0;
 
-  /** Distance at which a 16,000 km radius (Lantern 17's neighbourhood) fits the shorter side of the view. */
+  /** Distance at which a 19,000 km radius (Lantern 17's wider orbit) fits the shorter side of the view. */
   const overviewDistance = () => {
     const aspect = camera.aspect || 1.6;
-    return 16 / (Math.tan(MathUtils.degToRad(camera.fov / 2)) * Math.min(1, aspect));
+    return 19 / (Math.tan(MathUtils.degToRad(camera.fov / 2)) * Math.min(1, aspect));
   };
 
   const controls = new OrbitControls(camera, canvas);

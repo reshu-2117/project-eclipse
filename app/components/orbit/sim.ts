@@ -536,10 +536,12 @@ function lanternSpecs(): Spec[] {
     status,
     keepOutKm: 220,
     visualKm: 200,
+    // Irregular on purpose: eccentric paths that swing from low over the surface to far out,
+    // each tilted differently, so the Lanterns do not trace a neat ring.
     propose: (rng, widen) => ({
-      a: range(rng, 12_200, 17_800 + widen),
-      e: range(rng, 0, 0.04),
-      i: range(rng, 8, 30) * DEG,
+      a: range(rng, 11_800, 19_500 + widen),
+      e: range(rng, 0.1, 0.3),
+      i: range(rng, 4, 68) * DEG,
       raan: range(rng, 0, TAU),
       argp: range(rng, 0, TAU),
       m0: range(rng, 0, TAU),
@@ -705,7 +707,8 @@ export function generateField(seed: string = FIELD_SEED): OrbitalField {
     };
   };
 
-  // Lantern 17 is fixed: the other bodies are routed around it. Slot 17 gives it a 17 degree orbit.
+  // Lantern 17 is fixed: the other bodies are routed around it. Slot 17 gives it a 17 degree tilt, and
+  // a clearly elliptical path (e = 0.27): about 3,700 km over the surface at its lowest, 11,200 km at its highest.
   bodies.push(
     finish(
       {
@@ -716,9 +719,9 @@ export function generateField(seed: string = FIELD_SEED): OrbitalField {
         status: "target",
         keepOutKm: 220,
         visualKm: 200,
-        propose: () => ({ a: 13_800, e: 0.03, i: 17 * DEG, raan: 40 * DEG, argp: 110 * DEG, m0: 2.1 }),
+        propose: () => ({ a: 13_800, e: 0.27, i: 17 * DEG, raan: 40 * DEG, argp: 110 * DEG, m0: 2.1 }),
       },
-      makeOrbit({ a: 13_800, e: 0.03, i: 17 * DEG, raan: 40 * DEG, argp: 110 * DEG, m0: 2.1 }),
+      makeOrbit({ a: 13_800, e: 0.27, i: 17 * DEG, raan: 40 * DEG, argp: 110 * DEG, m0: 2.1 }),
       0,
     ),
   );

@@ -63,7 +63,11 @@ const inc = bodies.map((b) => (b.el.i * 180) / Math.PI);
 check(Math.max(...inc) - Math.min(...inc) > 120, "inclinations span a wide range", `${Math.min(...inc).toFixed(0)} to ${Math.max(...inc).toFixed(0)} deg`);
 check(inc.some((i) => i > 90), "some orbits are retrograde");
 const hero = bodies[0];
-check(hero.id === "L-17" && Math.abs(hero.el.e) < 0.1, "Lantern 17 is on a slightly elliptical orbit", `e = ${hero.el.e}, i = ${((hero.el.i * 180) / Math.PI).toFixed(0)} deg`);
+check(hero.id === "L-17" && hero.el.e >= 0.15 && hero.el.e < 0.35, "Lantern 17 is on a clearly elliptical orbit", `e = ${hero.el.e}, perigee ${(hero.rp - 6371).toFixed(0)} km, apogee ${(hero.ra - 6371).toFixed(0)} km altitude`);
+const lanterns = bodies.filter((b) => b.kind === "lantern");
+check(lanterns.every((b) => b.el.e >= 0.1), "every Lantern is eccentric, none is near-circular", `e ${Math.min(...lanterns.map((b) => b.el.e)).toFixed(2)} to ${Math.max(...lanterns.map((b) => b.el.e)).toFixed(2)}`);
+const lInc = lanterns.map((b) => (b.el.i * 180) / Math.PI);
+check(Math.max(...lInc) - Math.min(...lInc) > 30, "Lanterns are tilted differently, not in one ring", `${Math.min(...lInc).toFixed(0)} to ${Math.max(...lInc).toFixed(0)} deg`);
 
 // 4. geometry: independent brute-force orbit distance --------------------------------------------
 const BRUTE = 720;
