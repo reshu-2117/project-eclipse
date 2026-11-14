@@ -84,6 +84,8 @@ export function createGame(seed = 1): GameState {
     deck: [],
     card: 0,
     dockDelayH: 0,
+    flightSegH: 0,
+    flightLeftH: 0,
     helped: false,
     evidencePenalty: 0,
     arrivedT: null,
@@ -709,7 +711,10 @@ function chooseRoute(s: GameState, id: RouteId) {
     hours: tot.arriveH,
   });
   s.phase = "journey";
-  advance(s, tot.arriveH);
+  // fly the first leg now; each event card is followed by the next leg, and the last leg ends at the dock
+  s.flightSegH = tot.arriveH / (s.deck.length + 1);
+  s.flightLeftH = tot.arriveH - s.flightSegH;
+  advance(s, s.flightSegH);
 }
 
 function cardChoiceBlocked(s: GameState, c: CardChoice): string | null {
@@ -807,9 +812,19 @@ function playCard(s: GameState, choiceId: string) {
 
   s.card += 1;
   if (s.card >= s.deck.length) arrive(s);
+  else {
+    const seg = Math.min(s.flightSegH, s.flightLeftH);
+    s.flightLeftH -= seg;
+    advance(s, seg);
+  }
 }
 
 function arrive(s: GameState) {
+  if (s.flightLeftH > 0) {
+    const rest = s.flightLeftH;
+    s.flightLeftH = 0;
+    advance(s, rest);
+  }
   s.docked = true;
   s.arrivedT = s.t;
   s.phase = "station";

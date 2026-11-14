@@ -103,6 +103,23 @@ describe("determinism", () => {
 });
 
 describe("journey", () => {
+  it("the flight is flown in legs: time passes between event cards and the dock comes last", () => {
+    const quick = play(createGame(1), { type: "begin" }, { type: "launch" }, { type: "route", id: "quick" });
+    const total = 5.6 + 0; // the quick route's arrival, hours
+    expect(quick.phase).toBe("journey");
+    expect(quick.t).toBeCloseTo(total / 4, 1);
+    let s = quick;
+    const times = [s.t];
+    while (s.phase === "journey") {
+      const opt = options(s).find((o) => o.ok && o.action.type === "card" && ["ignore", "tank", "nudge", "emergency", "heat", "through", "pass", "limp", "shut"].includes(o.action.choice))!;
+      s = play(s, opt.action);
+      times.push(s.t);
+    }
+    expect(s.phase).toBe("station");
+    expect(s.flightLeftH).toBe(0);
+    for (let i = 1; i < times.length; i++) expect(times[i]).toBeGreaterThan(times[i - 1]);
+    expect(s.arrivedT).toBeGreaterThanOrEqual(total - 0.1);
+  });
   it("a route the ship can't afford is allowed, and you drift past the station", () => {
     const s = play(createGame(1), { type: "begin" }, { type: "hull", id: "hauler" }, { type: "shield", id: "heavy" }, { type: "launch" }, { type: "route", id: "skipWindow" });
     expect(s.adrift).toBe(true);

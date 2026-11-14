@@ -275,6 +275,114 @@ export class Sound {
     this.thump(0.55);
   }
 
+  private noise(seconds: number): AudioBufferSourceNode | null {
+    const ctx = this.ctx;
+    if (!ctx) return null;
+    const len = Math.max(1, Math.floor(ctx.sampleRate * seconds));
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    return src;
+  }
+
+  /** An engine burn: a low rumble that swells and fades. */
+  burn(seconds = 2.6) {
+    const ctx = this.ctx;
+    if (!ctx || !this.master || !this.enabled) return;
+    const t = ctx.currentTime;
+    const n = this.noise(seconds + 0.2);
+    if (!n) return;
+    const f = ctx.createBiquadFilter();
+    f.type = "lowpass";
+    f.frequency.setValueAtTime(180, t);
+    f.frequency.linearRampToValueAtTime(620, t + seconds * 0.5);
+    f.frequency.linearRampToValueAtTime(160, t + seconds);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.22, t + seconds * 0.3);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+    n.connect(f).connect(g).connect(this.master);
+    n.start(t);
+    n.stop(t + seconds + 0.2);
+    const o = ctx.createOscillator();
+    o.type = "sawtooth";
+    o.frequency.value = 46;
+    const og = ctx.createGain();
+    og.gain.setValueAtTime(0.0001, t);
+    og.gain.exponentialRampToValueAtTime(0.05, t + seconds * 0.3);
+    og.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+    o.connect(f);
+    o.connect(og).connect(this.master);
+    o.start(t);
+    o.stop(t + seconds + 0.1);
+  }
+
+  /** A card turning over: a short whoosh. */
+  flip() {
+    const ctx = this.ctx;
+    if (!ctx || !this.master || !this.enabled) return;
+    const t = ctx.currentTime;
+    const n = this.noise(0.3);
+    if (!n) return;
+    const f = ctx.createBiquadFilter();
+    f.type = "bandpass";
+    f.Q.value = 1.2;
+    f.frequency.setValueAtTime(700, t);
+    f.frequency.exponentialRampToValueAtTime(3200, t + 0.2);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.06, t + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+    n.connect(f).connect(g).connect(this.master);
+    n.start(t);
+    n.stop(t + 0.3);
+  }
+
+  /** Radio static, for another crew calling. */
+  radio() {
+    const ctx = this.ctx;
+    if (!ctx || !this.master || !this.enabled) return;
+    const t = ctx.currentTime;
+    for (let i = 0; i < 3; i++) {
+      const n = this.noise(0.12);
+      if (!n) return;
+      const f = ctx.createBiquadFilter();
+      f.type = "bandpass";
+      f.frequency.value = 1700 + i * 300;
+      f.Q.value = 4;
+      const g = ctx.createGain();
+      const at = t + i * 0.1;
+      g.gain.setValueAtTime(0.0001, at);
+      g.gain.exponentialRampToValueAtTime(0.07, at + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + 0.09);
+      n.connect(f).connect(g).connect(this.master);
+      n.start(at);
+      n.stop(at + 0.12);
+    }
+  }
+
+  /** A hull alarm: three alternating tones. */
+  alarm() {
+    const ctx = this.ctx;
+    if (!ctx || !this.master || !this.enabled) return;
+    const t = ctx.currentTime;
+    for (let i = 0; i < 4; i++) {
+      const o = ctx.createOscillator();
+      o.type = "square";
+      o.frequency.value = i % 2 ? 640 : 880;
+      const g = ctx.createGain();
+      const at = t + i * 0.16;
+      g.gain.setValueAtTime(0.0001, at);
+      g.gain.exponentialRampToValueAtTime(0.04, at + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + 0.14);
+      o.connect(g).connect(this.master);
+      o.start(at);
+      o.stop(at + 0.15);
+    }
+  }
+
   /** A single soft bell: an HUD meter lighting up. */
   ping(freq = 880) {
     const ctx = this.ctx;

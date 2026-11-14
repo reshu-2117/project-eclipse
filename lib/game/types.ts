@@ -147,6 +147,9 @@ export interface GameState {
   deck: EventId[];
   card: number;
   dockDelayH: number;
+  /** The flight is split into equal legs so time passes between event cards. */
+  flightSegH: number;
+  flightLeftH: number;
   helped: boolean;
   evidencePenalty: number;
 

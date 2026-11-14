@@ -60,6 +60,24 @@
       "voice": "Sarah",
       "bytes": 34315,
       "chars": 24
+    },
+    "dir-route": {
+      "hash": "690331ea0636",
+      "voice": "Sarah",
+      "bytes": 92412,
+      "chars": 71
+    },
+    "dir-arrive": {
+      "hash": "b658205a0b77",
+      "voice": "Sarah",
+      "bytes": 65662,
+      "chars": 60
+    },
+    "crew-distress": {
+      "hash": "09903763a022",
+      "voice": "Liam",
+      "bytes": 125012,
+      "chars": 128
     }
   }
 }

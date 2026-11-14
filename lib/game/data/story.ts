@@ -9,7 +9,7 @@
  * shortened from the dossier so the whole opening runs about a minute.
  */
 
-export type VoiceRole = "narrator" | "director";
+export type VoiceRole = "narrator" | "director" | "crew";
 
 export interface VoiceSpec {
   /** ElevenLabs voice id (a standard, premade voice: works on the free plan through the API). */
@@ -42,6 +42,14 @@ export const VOICES: Record<VoiceRole, VoiceSpec> = {
     name: "Sarah",
     why: "Mature, confident, reassuring. Calm authority, and a clear contrast with the narrator.",
     settings: { stability: 0.62, similarity_boost: 0.8, style: 0.12, use_speaker_boost: true, speed: 0.95 },
+  },
+  // The distress call is a third voice: Liam, a young American man (articulate, clear), pushed to low stability
+  // and high style so he sounds strained and a little too fast, like someone talking over a failing radio.
+  crew: {
+    id: "TX3LPaxmHKxFdv7VOQHJ",
+    name: "Liam",
+    why: "Young, clear American voice. Pushed to sound strained, for the crew in trouble.",
+    settings: { stability: 0.28, similarity_boost: 0.72, style: 0.55, use_speaker_boost: true, speed: 1.1 },
   },
 };
 
@@ -175,6 +183,26 @@ export const HANGAR_LAUNCH: VoiceLine = {
   text: "Gantry is clear. Launch.",
 };
 
+/** The route screen and the arrival. */
+export const ROUTE_ENTER: VoiceLine = {
+  id: "dir-route",
+  role: "director",
+  text: "Pick your route. Fast costs fuel. Slow costs time. Either way, you pay.",
+};
+
+export const ARRIVE: VoiceLine = {
+  id: "dir-arrive",
+  role: "director",
+  text: "Docking complete. You are on Lantern 17. The clock is yours.",
+};
+
+/** The other crew's mayday, the distress call card (E4). Their log holds clue C5 if you help. */
+export const DISTRESS: VoiceLine = {
+  id: "crew-distress",
+  role: "crew",
+  text: "Mayday, mayday. This is crew Tern Nine. Our drive is dead and we are tumbling. We cannot hold attitude. Anyone in range, please.",
+};
+
 /** What the officials know, and what they don't. The player discovers the real causes; the briefing doesn't spoil them. */
 export const UNKNOWNS = [
   {
@@ -218,4 +246,7 @@ export const ALL_LINES: VoiceLine[] = [
   HANGAR_ENTER,
   HANGAR_REVIEW,
   HANGAR_LAUNCH,
+  ROUTE_ENTER,
+  ARRIVE,
+  DISTRESS,
 ];

@@ -17,7 +17,10 @@ import {
 import type { Action, GameState } from "@/lib/game";
 import { CREDITS_VOICE, DISCLAIMER, ONE_RULE, type VoiceLine } from "@/lib/game/data/story";
 import { Sound, playLine, saveSettings, type LineHandle, type Settings } from "./audio";
+import Result from "../lab/Result";
 import Hangar from "./Hangar";
+import Journey from "./Journey";
+import Route from "./Route";
 
 // ───────────────────────────── saved runs ─────────────────────────────
 
@@ -148,6 +151,20 @@ function Hud({ game, settings, set, label }: { game: GameState; settings: Settin
           <b>{evidence(game)}</b>
           <u>/ 100</u>
         </li>
+        {!inHangar && (
+          <>
+            <li>
+              <small>Hull</small>
+              <b>{game.hull}</b>
+              <u>/ 100</u>
+            </li>
+            <li>
+              <small>Mission time</small>
+              <b>T+{Math.round(game.t * 10) / 10}</b>
+              <u>h</u>
+            </li>
+          </>
+        )}
         <li>
           <small>City light</small>
           <span className="ms-bars" aria-label="Four settlements, all with power">
@@ -215,45 +232,21 @@ function Gate({
 
 // ───────────────────────────── after launch ─────────────────────────────
 
-function Launched({ game, onRebuild }: { game: GameState; onRebuild: () => void }) {
-  const st = loadoutStats(game.loadout);
-  const entry = game.log.find((e) => e.title.startsWith("Readiness review passed"));
+function Ending({ game, onRebuild }: { game: GameState; onRebuild: () => void }) {
   return (
-    <main className="ms-launched" id="main">
-      <div className="ms-launched-inner">
+    <main className="ms-ending" id="main">
+      <div className="ms-ending-inner">
         <p className="eyebrow">
-          Launched <b>{"//"}</b> Hour {game.t}
+          Mission over <b>{"//"}</b> Hour {Math.round(game.t * 10) / 10}
         </p>
-        <h1 className="display">
-          Your ship is <em>away.</em>
-        </h1>
-        <p className="ms-gate-line">
-          {entry ? entry.text : `${game.loadout.hull} launched with ${Math.round(st.dv)} m/s of Δv.`}
-        </p>
-        <div className="ms-launched-stats">
-          <div>
-            <b>{Math.round(st.dv).toLocaleString("en-US")}</b>
-            <span>m/s of Δv</span>
-          </div>
-          <div>
-            <b>{Math.round(st.wetKg).toLocaleString("en-US")}</b>
-            <span>kg at launch</span>
-          </div>
-          <div>
-            <b>{st.credits}</b>
-            <span>of 100 credits</span>
-          </div>
-        </div>
-        <p className="ms-gate-fine">
-          The flight itself, the route, the journey and the station, is the next part of this build. You can watch a full mission fly in the Mission Lab, or build a different ship.
-        </p>
+        <Result s={game} />
         <div className="ms-gate-actions">
-          <Link href="/lab" className="btn btn-lantern">
-            Watch a mission in the Mission Lab <span aria-hidden="true">↗</span>
-          </Link>
-          <button type="button" className="btn btn-ghost" onClick={onRebuild}>
-            Build a different ship
+          <button type="button" className="btn btn-lantern" onClick={onRebuild}>
+            Build a different ship <span aria-hidden="true">↗</span>
           </button>
+          <Link href="/lab" className="btn btn-ghost">
+            Watch a mission in the Mission Lab
+          </Link>
         </div>
       </div>
     </main>
@@ -282,7 +275,7 @@ export default function Mission() {
   const runRef = useRef(run);
   const gameRef = useRef<GameState>(createGame(1));
   const game = useMemo(() => replay(run.seed, run.actions).state, [run]);
-  const [caption, setCaption] = useState<string | null>(null);
+  const [caption, setCaption] = useState<{ text: string; who: string } | null>(null);
 
   // sound follows the switch
   useEffect(() => {
@@ -339,7 +332,7 @@ export default function Mission() {
       if (said.current.has(line.id)) return;
       said.current.add(line.id);
       lineRef.current?.cancel();
-      setCaption(line.text);
+      setCaption({ text: line.text, who: line.role === "crew" ? "CREW TERN-9 · RADIO" : line.role === "director" ? "DIRECTOR" : "NARRATOR" });
       const h = playLine(line, { voice: voiceRef.current, onSpeaking: (s) => sound.duck(s && voiceRef.current) });
       lineRef.current = h;
       h.done.then(() =>
@@ -359,13 +352,19 @@ export default function Mission() {
     };
   }, [sound]);
 
+  /** A fresh seed for the event deck. Add ?seed=NN to the address to replay a particular deck. */
+  const newSeed = () => {
+    const q = Number(new URLSearchParams(window.location.search).get("seed"));
+    return Number.isFinite(q) && q > 0 ? Math.floor(q) : (Date.now() % 900000) + 1;
+  };
+
   const begin = () => {
     sound.unlock();
     sound.setEnabled(settings.sound);
     sound.swell(110);
     sound.thump(0.5);
     said.current.clear();
-    const seed = (Date.now() % 900000) + 1;
+    const seed = newSeed();
     const start = replay(seed, [{ type: "begin" }]);
     commit({ v: 1, seed, actions: [{ type: "begin" }] }, start.state);
     setPlaying(true);
@@ -382,12 +381,20 @@ export default function Mission() {
 
   const rebuild = () => {
     said.current.clear();
-    const seed = (Date.now() % 900000) + 1;
+    const seed = newSeed();
     commit({ v: 1, seed, actions: [{ type: "begin" }] }, replay(seed, [{ type: "begin" }]).state);
   };
 
   const label =
-    game.phase === "hangar" ? "THE WICK · ORBITAL DOCK · 300 KM" : game.phase === "debrief" ? "DEBRIEF" : "LAUNCHED";
+    game.phase === "hangar"
+      ? "THE WICK · ORBITAL DOCK · 300 KM"
+      : game.phase === "route"
+        ? "LAUNCH GANTRY · CHOOSE A ROUTE"
+        : game.phase === "journey"
+          ? "EN ROUTE TO LANTERN 17"
+          : game.phase === "station"
+            ? "LANTERN 17 · DOCKED"
+            : "MISSION OVER";
 
   if (!playing) {
     return (
@@ -403,17 +410,23 @@ export default function Mission() {
         Skip to content
       </a>
       <Hud game={game} settings={settings} set={setSettings} label={label} />
-      {game.phase === "hangar" ? (
-        <main id="main" className="ms-main">
-          <Hangar game={game} act={act} sound={sound} say={say} />
-        </main>
+      {game.phase === "debrief" ? (
+        <Ending game={game} onRebuild={rebuild} />
       ) : (
-        <Launched game={game} onRebuild={rebuild} />
+        <main id="main" className="ms-main">
+          {game.phase === "hangar" ? (
+            <Hangar game={game} act={act} sound={sound} say={say} />
+          ) : game.phase === "route" ? (
+            <Route game={game} act={act} sound={sound} say={say} />
+          ) : (
+            <Journey game={game} act={act} sound={sound} say={say} onRebuild={rebuild} />
+          )}
+        </main>
       )}
       <div className={`ms-caption${caption ? " on" : ""}`} aria-live="polite">
         {caption && (
           <p>
-            <b>DIRECTOR</b> {caption}
+            <b>{caption.who}</b> {caption.text}
           </p>
         )}
       </div>

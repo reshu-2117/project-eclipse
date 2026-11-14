@@ -59,13 +59,13 @@ Design decisions made in Chunk 0 (where the handbook left a gap):
 4. **You send one packet, whenever you choose.** You can transmit as soon as you're at the station. Sending early helps the network turn sooner, but the network judges the evidence you had at that moment.
 5. **City reserves drain by the light they're missing,** not only when Lantern 17 is fully dark. Fixing the drift slows the drain. Beaming during the Eclipse costs the cities nothing.
 
-Tests: `npm test` (58 tests). They re-derive every handbook number, check the rules, and play scripted crews to prove that all 8 endings can be reached.
+Tests: `npm test` (59 tests). They re-derive every handbook number, check the rules, and play scripted crews to prove that all 8 endings can be reached.
 
 **Mission Lab:** `/lab` runs the engine live, with handbook-vs-engine checks, a working hangar calculator, and nine scripted crews you can watch play full missions.
 
 ## AI use
 
-Project Eclipse was built with AI assistance, and we declare it here as the NASA Space Apps rules ask. After the team's initial project scaffold, the code in this repository (the front end, the game engine and its tests) was written and reviewed by Claude Code (Anthropic's Claude) working from the team's design documents. Each of those commits carries a `Co-Authored-By` trailer naming it. No generative AI was used for images or video: every visual is drawn in code, and the textures are procedural. The Director's spoken lines in the hangar are AI-generated with ElevenLabs text-to-speech. Each audio file says so in its metadata, the start screen says so, and `npm run voice` (see `scripts/generate-voice.mjs`) regenerates them. The world, story and game design come from the team's own documents (World-Building Dossier v3 and Game Systems Handbook v2). Nothing here uses NASA logos, flags or mission identifiers.
+Project Eclipse was built with AI assistance, and we declare it here as the NASA Space Apps rules ask. After the team's initial project scaffold, the code in this repository (the front end, the game engine and its tests) was written and reviewed by Claude Code (Anthropic's Claude) working from the team's design documents. Each of those commits carries a `Co-Authored-By` trailer naming it. No generative AI was used for images or video: every visual is drawn in code, and the textures are procedural. The Director's spoken lines and the other crew's radio call are AI-generated with ElevenLabs text-to-speech. Each audio file says so in its metadata, the start screen says so, and `npm run voice` (see `scripts/generate-voice.mjs`) regenerates them. The world, story and game design come from the team's own documents (World-Building Dossier v3 and Game Systems Handbook v2). Nothing here uses NASA logos, flags or mission identifiers.
 
 ## The Wick (hangar) at /mission
 
@@ -77,3 +77,13 @@ The first player-facing stage. Players build a ship in four bays (hull, parts, s
 - **Runs are saved** in `sessionStorage` as a seed plus the list of actions, so a refresh offers "Continue your mission".
 - **Sound and voice** have separate switches (`app/mission/audio.ts`); both remembered. Sound is made in the browser; the voice lines are recorded files in `public/audio`.
 - Respects reduced motion; works with the keyboard alone and at phone width.
+
+## Route and journey (also at /mission)
+
+After the hangar, the player picks a route and flies it.
+
+- **Route screen** (`app/mission/Route.tsx`): five route cards with Δv out, Δv home, the 10% margin and arrival hour; a flight map (`FlightMap.tsx`) with a path for each route (the Hohmann arcs are real ellipses between the Wick's and Lantern 17's orbits); a bar showing what you have against what each route needs; the hour you would arrive and whether it is Eclipse or daylight. A route that can't be flown asks "Go anyway?" first, because running dry is a real ending.
+- **Journey** (`app/mission/Journey.tsx`): the ship flies the route in legs, and three event cards (the distress call is always one) appear between them. Each card has its own animated scene (`CardArt.tsx`), choices with their costs, locked choices that say why (the engine's reason), and a result panel after you choose (what it cost, what else happened, what it teaches). Then the arrival and docking.
+- **Engine**: the flight is split into equal legs (`flightSegH`), so time passes between cards and the dock comes last. Running dry on the way out ends the mission straight away with a result screen (`app/lab/Result.tsx`, shared with the Mission Lab).
+- **Voices**: a third voice (a strained young crew member) speaks the distress call; the Director speaks on the route screen and at the dock.
+- Add `?seed=NN` to `/mission` to replay a particular event deck (useful for testing every card).
