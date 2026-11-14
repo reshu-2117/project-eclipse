@@ -8,7 +8,7 @@ Written Saturday 14 Nov 2026 (NASA Space Apps hackathon day 1). Submission close
 - **Project Eclipse**: a single-player space mission design game for NASA Space Apps 2026, challenge "Space Mission Design Game". Team `NASA-2026-VSK-059`, three students.
 - **Story**: Eclipse-01, a sunless rogue planet kept alive by 24 orbital fusion-light "Lanterns". Lantern 17 is failing (61% output) and a huge ice fragment is inbound. The player is one engineer among 300 crews.
 - **One rule**: every choice must gain something and cost something. Costs come from real physics (rocket equation, Hohmann transfers, comms time, ablation push).
-- **Team**: Reshma (build lead), Shunmukh (science lead), Nitish (story lead). Do not guess which one the user is.
+- **Team**: Reshma (build lead), Shanmukh (science lead), Nitish (story lead). Do not guess which one the user is.
 - **Source documents** (the user uploaded them; not in the repo): Game Systems Handbook v2 (the spec, 24 pages), Actual Build Guide, Worldbuilding Dossier v3, Round 1 and Round 2 pitch decks. The Handbook is the source of truth for numbers and stages.
 
 ## 2. Repo, branches, deploy
@@ -22,6 +22,9 @@ Written Saturday 14 Nov 2026 (NASA Space Apps hackathon day 1). Submission close
 - CSS: this repo's CSS goes through a custom loader, so new styles were added to `app/globals.css` under a prefix (`lab-`, planned `ms-`) instead of CSS modules.
 
 ## 3. What is built and live (main)
+
+**Home page changes (done, live)**: the menu has a Lab link; a new "The brain of the game, running live" section (`app/components/LabTeaser.tsx`) links to `/lab`; the simulation card links to it; the story text now matches the Handbook (Lantern 17 failing at 61%, one of 300 crews) in the hero, menu bar, network board, briefing terminal and world cards. The crew name is spelled **Shanmukh** (the user corrected this; keep that spelling everywhere). Still outdated on the home page: the placeholder `MissionDesigner` section ("Give your mission a purpose"), whose options (subsurface radar, life traces) are not canon.
+
 
 **Chunk 0, the game engine** in `lib/game/` (pure TypeScript, no UI, ~5,300 lines with tests):
 
@@ -64,7 +67,7 @@ A bug was fixed this session: the impact hour was logged twice (`impactLogged` f
 - `/mission` page. A **Begin gate** first (browsers need a click before audio), with a "Continue" if a run was saved in `sessionStorage`. Settings (sound, voice) in `localStorage`.
 - **Opening**: 5 panels, ~1 minute, voiced, text revealed word by word in sync with the voice, slow zoom, Skip button, Space/Enter/click to advance, Esc to skip, reduced-motion respected. Then a title card.
 - **Briefing**: terminal on the left (status lines, then the Director's lines typed in sync with her voice), settlements' reserve bars (Ember Hollow 16 h, Greywell 28 h, Marrow Deep 36 h, Lowlight 48 h, from the engine), a schematic orbit map, three "unknowns" cards (do NOT spoil the leak, drift or cracked mirror), the five meters (Δv, Energy, Time, Evidence, City light) lighting up one by one, the disclaimer, and an **Accept mission** button that ends at the hangar (Chunk 2).
-- **Homepage fix, approved by default, NOT done yet**: `Transmission.tsx` and `Network.tsx` say Lantern 17 is "gone dark / 0%" and the player is "the only engineer". Canon: 61% and falling, one of 300 crews. Also `Hero.tsx` ("L-17 OFFLINE", "ring"), `Hud.tsx`, and replace the placeholder `MissionDesigner` with a "Begin mission" link to `/mission`.
+- **Home page**: the story-text fix is done (section 3). Still to do: replace the placeholder `MissionDesigner` with a "Begin mission" link to `/mission`.
 
 **Built so far** (committed on the dev branch, compiles, lint clean):
 
@@ -115,7 +118,7 @@ In `docs/submission/` (copies; the originals were in a temporary folder):
 - **Demo is mandatory** (NASA 2026 Project Submission Guide): one public link to either a video of 30 s or less, or a slide deck of at most 7 slides including title. Over the limit means no Global Judging. A slide demo should show team name, member names, the challenge, an image of the project, the user experience and how NASA data was used. **No demo exists yet**; the recommendation was a 7-slide deck (also avoids the rule that the demo may not show anyone under 18). The user has asked me not to repeat this in messages to their lead; just track it.
 - **AI rules**: SI should not be used to come up with the idea for solving the challenge. The report says Claude helped with brainstorming; **the user must confirm what that covered and that the wording is accurate.** Do not soften it on their behalf.
 - **NASA data**: Global Award needs at least one NASA data or resource. Published NASA figures probably count but are unconfirmed.
-- Homepage text contradicts the canon until the fix in section 4 is done.
+- The placeholder `MissionDesigner` section on the home page is not canon (see section 3); replace it with a "Begin mission" entry once `/mission` exists.
 - No LICENSE in the repo.
 - Submit steps: complete every form field, public links, tick "Terms" and "Confirm All Work is Original", then "Submit for Judging" before Sun 11:59 pm local.
 
@@ -134,5 +137,5 @@ In `docs/submission/` (copies; the originals were in a temporary folder):
 
 1. `git fetch && git checkout claude/stoic-brahmagupta-f3uprq`, `npm install`, `npm test` (expect 53 passing), `npm run build`.
 2. Ask the user one question only if needed: finish Chunk 1 now, or build the 7-slide demo first (the deadline is tonight/tomorrow).
-3. If finishing Chunk 1: write `Briefing.tsx`, `Mission.tsx`, `page.tsx`, the CSS; run it with Playwright (Chromium is preinstalled: `require('playwright')`), screenshot every panel at 1400x900 and 390x844, test keyboard-only and reduced motion; fix the homepage text; update the report's status line; merge to `main` only when it is complete and the build passes.
+3. If finishing Chunk 1: write `Briefing.tsx`, `Mission.tsx`, `page.tsx`, the CSS; run it with Playwright (Chromium is preinstalled: `require('playwright')`), screenshot every panel at 1400x900 and 390x844, test keyboard-only and reduced motion; update the report's status line; merge to `main` only when it is complete and the build passes.
 4. Keep `npm test` green, and update `README.md` and the report when a chunk ships.
