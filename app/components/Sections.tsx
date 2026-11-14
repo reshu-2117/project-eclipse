@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Antenna, Chip, Craft, Instrument, Mass, Power } from "./Icons";
 
 export function World() {
@@ -5,7 +6,7 @@ export function World() {
     { k: "World", big: <>Eclipse-01</>, p: "A rogue planet. No star, no orbit around a sun. Just drift." },
     { k: "Light source", big: <>24 <em>Lanterns</em></>, p: "Orbital stations that hold back the dark for the surface below." },
     { k: "Threat", big: <>Ice debris</>, p: "Frozen fragments crossing the Lantern ring. One hit is enough." },
-    { k: "At stake", big: <>Life, <em>below</em></>, p: "Traces of life under the ice, and they depend on the light." },
+    { k: "At stake", big: <>People, <em>below</em></>, p: "Four settlements live beneath the ice, on light from the Lanterns." },
   ];
   return (
     <section className="world" id="world" aria-label="The world of Eclipse-01">
@@ -28,7 +29,7 @@ const SYSTEMS = [
   { n: "03", Icon: Power, t: "Power", p: "No sun means no solar panels. Every watt has to be brought along." },
   { n: "04", Icon: Mass, t: "Mass & budget", p: "Each instrument adds weight, and every kilogram costs fuel and money." },
   { n: "05", Icon: Antenna, t: "Communication", p: "Data has to make it home across the dark. Bigger antenna, heavier craft." },
-  { n: "06", Icon: Chip, t: "Mission simulation", p: "Fly your design before you commit to it. The simulator is calibrating.", sim: true },
+  { n: "06", Icon: Chip, t: "Mission simulation", p: "Fly your design before you commit to it. The engine already runs full missions: try it in the Mission Lab.", sim: true },
 ];
 
 export function Systems() {
@@ -58,9 +59,9 @@ export function Systems() {
               <h4>{t}</h4>
               <p>{p}</p>
               {sim && (
-                <div className="calibrating" aria-hidden="true">
-                  <i />
-                </div>
+                <Link href="/lab" className="sys-link">
+                  Open the Mission Lab <span aria-hidden="true">↗</span>
+                </Link>
               )}
             </article>
           ))}
@@ -85,7 +86,7 @@ const CREW = [
   },
   {
     i: "S",
-    name: "Shunmukh",
+    name: "Shanmukh",
     role: "Research · Science",
     p: "Did the research that keeps our world real.",
   },
