@@ -196,6 +196,31 @@ export const ARRIVE: VoiceLine = {
   text: "Docking complete. You are on Lantern 17. The clock is yours.",
 };
 
+/** The flight deck: the Director talks the pilot through the moments that matter. */
+export const FLY_START: VoiceLine = {
+  id: "dir-fly",
+  role: "director",
+  text: "This one's yours. The computer plots the burns, but you fly them. Hold the burn when it tells you. And remember: in orbit, nothing works the way your gut says.",
+};
+
+export const FLY_BRAKE: VoiceLine = {
+  id: "dir-brake",
+  role: "director",
+  text: "Lantern 17 is ahead of you. To catch it, you brake. A lower orbit is a faster one. Trust the maths.",
+};
+
+export const FLY_ALERT: VoiceLine = {
+  id: "dir-ice",
+  role: "director",
+  text: "Collision warning. A fragment of ice is crossing your path, and tracking can't promise a miss. A small burn now costs almost nothing. Later, it costs everything.",
+};
+
+export const FLY_APPROACH: VoiceLine = {
+  id: "dir-approach",
+  role: "director",
+  text: "There she is. Thrusters only from here. Slow is smooth, and smooth is fast. Touch the ring at less than a third of a metre per second.",
+};
+
 /** The Director at the station: a handful of lines at the moments that matter. No spoilers. */
 export const STATION_ENTER: VoiceLine = {
   id: "dir-station",
@@ -284,6 +309,10 @@ export const ALL_LINES: VoiceLine[] = [
   HANGAR_REVIEW,
   HANGAR_LAUNCH,
   ROUTE_ENTER,
+  FLY_START,
+  FLY_BRAKE,
+  FLY_ALERT,
+  FLY_APPROACH,
   ARRIVE,
   STATION_ENTER,
   STATION_CLUE,

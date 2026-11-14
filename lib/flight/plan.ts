@@ -152,7 +152,7 @@ export function buildScenario(route: RouteId, lead = LEAD_S, burnSeconds: (dv: n
   const hoh = hohmannLegs(r1, r2);
   const lagAngle = 10 * DEG; // where the handbook's catch-up starts: 10° behind
   const nodes: PlanNode[] = [];
-  let waitH = route === "skipWindow" ? 0 : ORBIT.windowWaitH;
+  const waitH = route === "skipWindow" ? 0 : ORBIT.windowWaitH;
 
   if (route === "fastOut" || route === "fastBoth") {
     const fi = fastIntercept();

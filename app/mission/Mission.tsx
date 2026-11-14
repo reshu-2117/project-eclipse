@@ -23,6 +23,11 @@ import Hangar from "./Hangar";
 import Opening from "./Opening";
 import Journey from "./Journey";
 import Route from "./Route";
+import dynamic from "next/dynamic";
+import { actionsToFlight } from "./shortcut";
+
+// the flight deck is WebGL: load it in the browser only, and only when the flight starts
+const FlightDeck = dynamic(() => import("./flight/FlightDeck"), { ssr: false });
 
 // ───────────────────────────── saved runs ─────────────────────────────
 
@@ -187,12 +192,14 @@ function Gate({
   settings,
   set,
   canContinue,
+  onFly,
   onBegin,
   onContinue,
 }: {
   settings: Settings;
   set: (s: Settings) => void;
   canContinue: boolean;
+  onFly: () => void;
   onBegin: () => void;
   onContinue: () => void;
 }) {
@@ -221,7 +228,8 @@ function Gate({
         </div>
         <Toggles settings={settings} set={set} />
         <p className="ms-gate-skip">
-          Reviewing? <Link href="/station?demo=1">Jump to the Station Mission</Link>, a short guided part of the game that happens after you reach Lantern 17. A ship is built and flown for you.
+          Reviewing? <button type="button" className="ms-gate-link" onClick={onFly}>Jump to the flight</button>: a ship is built and launched for you, and you fly it to Lantern 17. Or{" "}
+          <Link href="/station?demo=1">jump to the Station Mission</Link>, the guided part of the game after you dock.
         </p>
         <p className="ms-gate-small">Best with sound. Both switches can be changed at any time.</p>
         <p className="ms-gate-fine">
@@ -283,6 +291,8 @@ export default function Mission() {
   const [caption, setCaption] = useState<{ text: string; who: string } | null>(null);
   // the opening and the briefing come before the hangar, on a fresh start only
   const [intro, setIntro] = useState<"opening" | "briefing" | null>(null);
+  // the flight deck stays on screen after docking (or a lost flight) until the player moves on
+  const [deckHold, setDeckHold] = useState(false);
 
   // sound follows the switch
   useEffect(() => {
@@ -388,8 +398,27 @@ export default function Mission() {
     setPlaying(true);
   };
 
+  /** Reviewer shortcut: straight to the flight deck with a ready ship. */
+  const fly = () => {
+    sound.unlock();
+    sound.setEnabled(settings.sound);
+    sound.swell(110);
+    said.current.clear();
+    const seed = newSeed();
+    const { actions, state } = actionsToFlight(seed);
+    try {
+      window.sessionStorage.removeItem("eclipse-flight");
+    } catch {
+      /* ignore */
+    }
+    commit({ v: 1, seed, actions }, state);
+    setIntro(null);
+    setPlaying(true);
+  };
+
   const rebuild = () => {
     said.current.clear();
+    setDeckHold(false);
     const seed = newSeed();
     commit({ v: 1, seed, actions: [{ type: "begin" }] }, replay(seed, [{ type: "begin" }]).state);
   };
@@ -408,7 +437,7 @@ export default function Mission() {
   if (!playing) {
     return (
       <div className="ms">
-        <Gate settings={settings} set={setSettings} canContinue={!!saved} onBegin={begin} onContinue={resume} />
+        <Gate settings={settings} set={setSettings} canContinue={!!saved} onBegin={begin} onContinue={resume} onFly={fly} />
       </div>
     );
   }
@@ -442,7 +471,9 @@ export default function Mission() {
         Skip to content
       </a>
       <Hud game={game} settings={settings} set={setSettings} label={label} />
-      {game.phase === "debrief" ? (
+      {game.piloted && (game.phase === "journey" || deckHold) ? (
+        <FlightDeck game={game} act={act} sound={sound} say={say} onHold={setDeckHold} />
+      ) : game.phase === "debrief" ? (
         <Ending game={game} onRebuild={rebuild} />
       ) : (
         <main id="main" className="ms-main">

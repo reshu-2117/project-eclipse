@@ -2101,3 +2101,14 @@
 .ms-gate-skip button:hover {
   color: var(--amber-soft);
 }
+
+.ms-gate-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--amber);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}

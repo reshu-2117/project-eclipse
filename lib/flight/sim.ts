@@ -107,6 +107,29 @@ export interface FlightEvent {
   value?: number;
 }
 
+export interface FlightSnapshot {
+  v: 1;
+  seed: number;
+  route: string;
+  card: number;
+  t: number;
+  ship: State;
+  att: V3;
+  spent: number;
+  rcsSpent: number;
+  hullTotal: number;
+  reportedT: number;
+  waitPending: number;
+  plan: PlanNode[];
+  nodeIdx: number;
+  replans: number;
+  terminalDone: number;
+  conj: Conjunction;
+  cardTimes: number[];
+  cardIdx: number;
+  guide: boolean;
+}
+
 export interface Contact {
   speed: number;
   lateral: number;
@@ -152,7 +175,7 @@ const HAZE_N = 34;
 
 export class FlightSim {
   readonly sc: Scenario;
-  readonly spec: ShipSpec;
+  spec: ShipSpec;
   readonly seed: number;
   /** flight time, s (0 = the window opens) */
   t = 0;
@@ -814,6 +837,7 @@ export class FlightSim {
       this.latched = false;
       this.warp = 1;
       this.makeHaze();
+      this.cardsNow();
       ev.push({ type: "approach" });
       return;
     }
@@ -825,8 +849,14 @@ export class FlightSim {
       this.mode = "approach";
       this.warp = 1;
       this.makeHaze();
+      this.cardsNow();
       ev.push({ type: "approach" });
     }
+  }
+
+  /** Any cards still to come happen now: you can't dock with events outstanding. */
+  private cardsNow() {
+    for (let i = this.cardIdx; i < this.cardTimes.length; i++) this.cardTimes[i] = Math.min(this.cardTimes[i], this.t + 4 + (i - this.cardIdx) * 3);
   }
 
   private proximity(ev: FlightEvent[], h: number) {
@@ -922,6 +952,79 @@ export class FlightSim {
   abandon(why = "You called for a rescue.") {
     this.mode = "lost";
     this.lostReason = why;
+  }
+
+  /** The burn the HUD shows for a node: what's left while burning, else the plan at its time. */
+  plannedDvForHud(node: PlanNode): V3 {
+    return this.thrusting ? this.remaining : this.plannedDvCached(node);
+  }
+
+  /** Reviewer shortcut: the computer flies the whole route perfectly; you take over for the approach. */
+  fastForwardToApproach() {
+    if (this.mode !== "cruise") return;
+    this.t = this.sc.approachT;
+    this.ship = approachAt(this.sc, this.t);
+    this.att = lvlhOf(this.l17).vbar;
+    this.spent = this.sc.idealDv;
+    this.nodeIdx = this.plan.length;
+    this.remaining = [0, 0, 0];
+    this.conj.state = "passed";
+    this.conj.passedAt = this.conj.trueMiss + 300;
+    this.mode = "approach";
+    this.warp = 1;
+    this.makeHaze();
+    this.cardsNow();
+  }
+
+  // ── save and resume (a page refresh mid-flight) ──
+
+  snapshot(card: number): FlightSnapshot {
+    return {
+      v: 1,
+      seed: this.seed,
+      route: this.sc.route,
+      card,
+      t: this.t,
+      ship: this.ship,
+      att: this.att,
+      spent: this.spent,
+      rcsSpent: this.rcsSpent,
+      hullTotal: this.hullTotal,
+      reportedT: this.reportedT,
+      waitPending: this.waitPending,
+      plan: this.plan,
+      nodeIdx: this.nodeIdx,
+      replans: this.replans,
+      terminalDone: this.terminalDone,
+      conj: this.conj,
+      cardTimes: this.cardTimes,
+      cardIdx: this.cardIdx,
+      guide: this.guide,
+    };
+  }
+
+  /** Resume from a snapshot taken at the same point of the same run; false if it doesn't match. */
+  restore(snap: FlightSnapshot, card: number): boolean {
+    if (!snap || snap.v !== 1 || snap.seed !== this.seed || snap.route !== this.sc.route || snap.card !== card) return false;
+    this.t = snap.t;
+    this.ship = snap.ship;
+    this.att = snap.att;
+    this.spent = snap.spent;
+    this.rcsSpent = snap.rcsSpent;
+    this.hullTotal = snap.hullTotal;
+    this.reportedT = snap.reportedT;
+    this.waitPending = snap.waitPending;
+    this.plan = snap.plan;
+    this.nodeIdx = snap.nodeIdx;
+    this.replans = snap.replans;
+    this.terminalDone = snap.terminalDone;
+    this.conj = snap.conj;
+    this.cardTimes = snap.cardTimes;
+    this.cardIdx = snap.cardIdx;
+    this.guide = snap.guide;
+    this.hullPending = 0;
+    this.cardPending = false;
+    return true;
   }
 
   // ── reporting to the engine ──

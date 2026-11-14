@@ -114,6 +114,30 @@
       "voice": "Sarah",
       "bytes": 38913,
       "chars": 31
+    },
+    "dir-fly": {
+      "hash": "5be38efde885",
+      "voice": "Sarah",
+      "bytes": 157195,
+      "chars": 159
+    },
+    "dir-brake": {
+      "hash": "29f52871e591",
+      "voice": "Sarah",
+      "bytes": 125012,
+      "chars": 99
+    },
+    "dir-ice": {
+      "hash": "a74380599661",
+      "voice": "Sarah",
+      "bytes": 163047,
+      "chars": 161
+    },
+    "dir-approach": {
+      "hash": "68b00cefc893",
+      "voice": "Sarah",
+      "bytes": 138387,
+      "chars": 134
     }
   }
 }

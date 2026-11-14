@@ -319,6 +319,171 @@ export class Sound {
     o.stop(t + seconds + 0.1);
   }
 
+  // ── flight deck ──
+  // In vacuum there is no sound outside the ship: everything here is what comes through the hull.
+
+  private hum: { g: GainNode; f: BiquadFilterNode; o: OscillatorNode; og: GainNode } | null = null;
+
+  /** The main engine, felt through the hull: 0 = off, 1 = full thrust. Continuous; call every frame. */
+  engine(level: number, pitch = 1) {
+    const ctx = this.ctx;
+    if (!ctx || !this.master) return;
+    if (!this.hum) {
+      const len = ctx.sampleRate * 2;
+      const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < len; i++) {
+        last = (last + 0.04 * (Math.random() * 2 - 1)) / 1.04;
+        d[i] = last * 4;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      const f = ctx.createBiquadFilter();
+      f.type = "lowpass";
+      f.frequency.value = 220;
+      f.Q.value = 1.2;
+      const g = ctx.createGain();
+      g.gain.value = 0;
+      src.connect(f).connect(g).connect(this.master);
+      src.start();
+      const o = ctx.createOscillator();
+      o.type = "sawtooth";
+      o.frequency.value = 38;
+      const og = ctx.createGain();
+      og.gain.value = 0;
+      const of = ctx.createBiquadFilter();
+      of.type = "lowpass";
+      of.frequency.value = 120;
+      o.connect(of).connect(og).connect(this.master);
+      o.start();
+      this.hum = { g, f, o, og };
+    }
+    const on = this.enabled ? Math.max(0, Math.min(1, level)) : 0;
+    const t = ctx.currentTime;
+    this.hum.g.gain.setTargetAtTime(on * 0.34, t, on > 0 ? 0.08 : 0.35);
+    this.hum.og.gain.setTargetAtTime(on * 0.07, t, on > 0 ? 0.1 : 0.4);
+    this.hum.f.frequency.setTargetAtTime(160 + 260 * on * pitch, t, 0.2);
+    this.hum.o.frequency.setTargetAtTime(34 + 10 * pitch, t, 0.3);
+  }
+
+  /** A thruster pulse: a short, hard puff. */
+  puff(level = 0.5) {
+    const ctx = this.ctx;
+    if (!ctx || !this.master || !this.enabled) return;
+    const t = ctx.currentTime;
+    const n = this.noise(0.14);
+    if (!n) return;
+    const f = ctx.createBiquadFilter();
+    f.type = "bandpass";
+    f.frequency.value = 900 + Math.random() * 500;
+    f.Q.value = 0.9;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.09 * level, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+    n.connect(f).connect(g).connect(this.master);
+    n.start(t);
+    n.stop(t + 0.15);
+  }
+
+  /** Ice on the hull: a sharp crack and a ringing knock. */
+  clack(level = 0.6) {
+    const ctx = this.ctx;
+    if (!ctx || !this.master || !this.enabled) return;
+    const t = ctx.currentTime;
+    const n = this.noise(0.35);
+    if (n) {
+      const f = ctx.createBiquadFilter();
+      f.type = "highpass";
+      f.frequency.value = 1400;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.35 * level, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+      n.connect(f).connect(g).connect(this.master);
+      n.start(t);
+      n.stop(t + 0.3);
+    }
+    for (const [freq, lvl] of [
+      [190, 0.22],
+      [457, 0.1],
+      [1130, 0.05],
+    ] as const) {
+      const o = ctx.createOscillator();
+      o.type = "sine";
+      o.frequency.value = freq * (0.95 + Math.random() * 0.1);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(lvl * level, t + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+      o.connect(g).connect(this.master);
+      o.start(t);
+      o.stop(t + 1);
+    }
+  }
+
+  /** Docking latches closing: a deep clunk, then a second. */
+  capture() {
+    this.thump(0.9);
+    const ctx = this.ctx;
+    if (!ctx) return;
+    window.setTimeout(() => this.thump(0.6), 420);
+    window.setTimeout(() => this.clack(0.25), 900);
+  }
+
+  /** The master alarm for a collision warning: two-tone. */
+  warn() {
+    const ctx = this.ctx;
+    if (!ctx || !this.master || !this.enabled) return;
+    const t = ctx.currentTime;
+    for (let i = 0; i < 3; i++) {
+      for (const [k, f] of [
+        [0, 1046],
+        [0.16, 784],
+      ] as const) {
+        const o = ctx.createOscillator();
+        o.type = "square";
+        o.frequency.value = f;
+        const g = ctx.createGain();
+        const s = t + i * 0.42 + k;
+        g.gain.setValueAtTime(0.0001, s);
+        g.gain.exponentialRampToValueAtTime(0.05, s + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, s + 0.15);
+        const lp = ctx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.value = 2400;
+        o.connect(lp).connect(g).connect(this.master);
+        o.start(s);
+        o.stop(s + 0.16);
+      }
+    }
+  }
+
+  /** Something passing very close, very fast: felt as a pressure thud and a hiss in the hull. */
+  pass() {
+    const ctx = this.ctx;
+    if (!ctx || !this.master || !this.enabled) return;
+    const t = ctx.currentTime;
+    const n = this.noise(1.6);
+    if (!n) return;
+    const f = ctx.createBiquadFilter();
+    f.type = "bandpass";
+    f.Q.value = 1.4;
+    f.frequency.setValueAtTime(300, t);
+    f.frequency.exponentialRampToValueAtTime(2400, t + 0.5);
+    f.frequency.exponentialRampToValueAtTime(200, t + 1.5);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.25, t + 0.45);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+    n.connect(f).connect(g).connect(this.master);
+    n.start(t);
+    n.stop(t + 1.6);
+    this.thump(0.35);
+  }
+
   /** A card turning over: a short whoosh. */
   flip() {
     const ctx = this.ctx;
