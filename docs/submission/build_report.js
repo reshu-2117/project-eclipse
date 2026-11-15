@@ -69,6 +69,7 @@ const box = (children) =>
 
 // ---------- content ----------
 // The demo deck as a public PDF in the repository (GitHub is on NASA's list of hosts; no login needed)
+const REPORT_URL = "https://github.com/reshu-2117/project-eclipse/blob/main/docs/submission/Project_Eclipse_Components_of_Project_2026.pdf";
 const DEMO_URL = "https://github.com/reshu-2117/project-eclipse/blob/main/docs/submission/demo-deck/Project_Eclipse_Demo_Deck.pdf";
 const HLS = [
   para([b("Project Name :")], { spacing: { after: 40 } }),
@@ -113,6 +114,7 @@ const LINKS = [
   ]),
   para([b("Project Link (the game, live): "), link("https://project-eclipse-new.vercel.app")]),
   para([b("Mission Lab (live proof page): "), link("https://project-eclipse-new.vercel.app/lab"), t(" (every handbook number re-derived in your browser, five starter packages tested against five routes, and nine scripted crews flying whole missions to every ending, with a scrubbable chart of each).")]),
+  para([b("This report (PDF): "), link(REPORT_URL)]),
   para([b("Play the whole mission (hangar, piloted flight, docking, station walk, debrief): "), link("https://project-eclipse-new.vercel.app/mission")]),
   para([b("The Station Mission (at Lantern 17, a guided page for new players): "), link("https://project-eclipse-new.vercel.app/station?demo=1")]),
   para([
