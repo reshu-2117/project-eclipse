@@ -85,6 +85,9 @@ export default function Lab() {
             </a>
           ))}
         </nav>
+        <Link href="/review" className="lb-parts" aria-label="All parts of the game: open the review menu">
+          <span className="lb-hide-sm">All </span>parts
+        </Link>
         <Link href="/mission" className="btn btn-lantern lb-play-btn">
           Play<span className="lb-hide-sm"> the mission</span> <span aria-hidden="true">↗</span>
         </Link>

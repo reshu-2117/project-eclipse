@@ -111,9 +111,20 @@ function Icon({ name }: { name: "sound" | "voice" }) {
   );
 }
 
-function Toggles({ settings, set }: { settings: Settings; set: (s: Settings) => void }) {
+function Toggles({ settings, set, parts }: { settings: Settings; set: (s: Settings) => void; parts?: boolean }) {
   return (
     <div className="ms-toggles">
+      {parts && (
+        <Link href="/review" className="ms-toggle" aria-label="All parts of the game: open the review menu">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" />
+            <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" />
+            <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" />
+            <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" />
+          </svg>
+          <span>All parts</span>
+        </Link>
+      )}
       <button type="button" className="ms-toggle" aria-pressed={settings.sound} onClick={() => set({ ...settings, sound: !settings.sound })}>
         <Icon name="sound" />
         <span>Sound {settings.sound ? "on" : "off"}</span>
@@ -184,7 +195,7 @@ function Hud({ game, settings, set, label }: { game: GameState; settings: Settin
           </span>
         </li>
       </ul>
-      <Toggles settings={settings} set={set} />
+      <Toggles settings={settings} set={set} parts />
     </header>
   );
 }

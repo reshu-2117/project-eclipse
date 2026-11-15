@@ -1997,3 +1997,27 @@
   border-color: rgba(201, 162, 255, 0.4);
   background: rgba(201, 162, 255, 0.07);
 }
+
+/* the always-visible link to the review menu */
+.lb-parts {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--frost);
+  border: 1px solid rgba(220, 230, 240, 0.3);
+  border-radius: 999px;
+  padding: 9px 14px;
+  white-space: nowrap;
+}
+.lb-parts:hover {
+  color: var(--amber);
+  border-color: var(--amber);
+}
+@media (max-width: 600px) {
+  .lb-parts {
+    padding: 8px 11px;
+    letter-spacing: 0.08em;
+  }
+}

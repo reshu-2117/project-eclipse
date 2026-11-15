@@ -439,6 +439,9 @@ function TopBar({ settings, set, game }: { settings: Settings; set: (s: Settings
         </ul>
       )}
       <div className="sq-toggles">
+        <Link href="/review" className="sq-parts">
+          All parts
+        </Link>
         <button type="button" aria-pressed={settings.sound} onClick={() => set({ ...settings, sound: !settings.sound })}>
           Sound {settings.sound ? "on" : "off"}
         </button>
