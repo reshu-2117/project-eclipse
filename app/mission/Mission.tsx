@@ -27,6 +27,7 @@ import dynamic from "next/dynamic";
 import { actionsToFlight } from "./shortcut";
 import { GhostCompare, ReplayButtons } from "./Replay";
 import { replayPoint } from "@/lib/game";
+import Lumen from "../guide/Lumen";
 
 // the flight deck is WebGL: load it in the browser only, and only when the flight starts
 const FlightDeck = dynamic(() => import("./flight/FlightDeck"), { ssr: false });
@@ -497,7 +498,10 @@ export default function Mission() {
       {game.piloted && (game.phase === "journey" || deckHold) ? (
         <FlightDeck game={game} act={act} sound={sound} say={say} onHold={setDeckHold} />
       ) : game.phase === "debrief" ? (
-        <Ending game={game} onRebuild={rebuild} onReplay={replayAt} />
+        <>
+          <Ending game={game} onRebuild={rebuild} onReplay={replayAt} />
+          <Lumen tip={{ id: "ending", title: "how it went", text: "This is how your mission turned out, and why. Look at what you could do better, then fly it again with just one change and compare." }} />
+        </>
       ) : (
         <main id="main" className="ms-main">
           {game.phase === "hangar" ? (

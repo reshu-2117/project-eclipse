@@ -2167,3 +2167,26 @@
 .lab-flight {
   margin: 18px 0;
 }
+
+/* plain words on every part */
+.hg-plain {
+  display: block;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--frost);
+}
+.hg-plain b {
+  display: inline-block;
+  margin-right: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.hg-plain.best b {
+  color: #7dffb0;
+}
+.hg-plain.worst b {
+  color: #ff9f7a;
+}

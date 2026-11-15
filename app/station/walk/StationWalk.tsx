@@ -28,6 +28,7 @@ import type { Action, HazardId, Method, ZoneId } from "@/lib/game";
 import { Latest, clueCount, r1, type QuestCtx } from "../shared";
 import { WalkScene, type Pin, type ScreenPin } from "./walkScene";
 import type { Sound } from "../../mission/audio";
+import Lumen, { type Tip } from "../../guide/Lumen";
 
 const METHODS: { id: Method; name: string; sub: string }[] = [
   { id: "eva", name: "Look up close", sub: "Hands-on, here and now. Uses suit air." },
@@ -63,7 +64,7 @@ const THERMAL_HINT: Partial<Record<ZoneId, string>> = {
   dock: "Thermal: the hub and your ship glow warm. People live in there.",
 };
 
-export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx; coach: { title: string; text: string }; onGuide: () => void; sound: Sound }) {
+export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx; coach: { step: string; title: string; text: string }; onGuide: () => void; sound: Sound }) {
   const g = c.game;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<WalkScene | null>(null);
@@ -103,6 +104,8 @@ export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx;
     let raf = 0;
     let last = performance.now();
     let pinAt = 0;
+    let pinKey = "";
+    let wasMoving = false;
     let clickAt = 0;
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
@@ -116,10 +119,18 @@ export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx;
         eclipse: isEclipse(gg.t),
         dark: !gg.reactorOnline,
       });
-      if (now - pinAt > 100) {
+      // the HUD only re-renders when a pin really moves or the glide starts or stops
+      if (now - pinAt > 120) {
         pinAt = now;
-        setPins(sp);
-        setMoving(scene.moving);
+        const key = sp.map((p) => `${p.id}:${p.on ? 1 : 0}:${Math.round(p.x * 200)}:${Math.round(p.y * 200)}`).join("|");
+        if (key !== pinKey) {
+          pinKey = key;
+          setPins(sp);
+        }
+        if (scene.moving !== wasMoving) {
+          wasMoving = scene.moving;
+          setMoving(scene.moving);
+        }
       }
       // the dosimeter clicks faster as you near the Kiln
       const d = scene.kilnDistance();
@@ -252,6 +263,31 @@ export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx;
     [g.done, g.found, g.leakPatched, g.driftFixed, g.zonesKnown],
   );
 
+  /** Lumen's line out here: the coach's next step, pointing at where to do it. */
+  function walkTip(): Tip {
+    const base = { title: coach.title.toLowerCase() };
+    if (!g.surveyed) return { ...base, id: "survey", text: `Welcome outside Lantern 17. ${coach.text} Press Fly the survey.`, target: ".sw-work .sq-btn" };
+    if (moving) return { ...base, id: `moving-${zone}`, text: "Gliding along the safety rail. Drag the view to look around.", target: undefined };
+    if (coach.step === "fix") {
+      const here = hazards.some((h) => (h === "leak" ? !g.leakPatched : !g.driftFixed));
+      return here
+        ? { ...base, id: `fix-here-${zone}`, text: `${coach.text} It's right here. Press a Fix button.`, target: ".sw-fix .sw-act", tone: "warn" }
+        : { ...base, id: `fix-go-${zone}`, text: `${coach.text} Go to the zone marked red on the left.`, target: ".sw-zone.broken", tone: "warn" };
+    }
+    if (coach.step === "investigate") {
+      const left = METHODS.filter((m) => !g.done.includes(`${zone}:${m.id}`)).length;
+      return left > 0 && zoneState[zone] !== "worked"
+        ? { ...base, id: `look-${zone}`, text: `You're at ${z.name}. Pick a way to look, below. Each takes some time and finds different things: thermal sees heat, a close look sees cracks. Clues found so far: ${clueCount(g)} of 6.`, target: ".sw-methods" }
+        : { ...base, id: `next-zone-${zone}`, text: `You've searched ${z.name}. Glide to another zone from the list on the left. Unknown zones go on your map once you get there.`, target: ".sw-zones" };
+    }
+    if (coach.step === "prove" && testUnlocked(g) && !g.test) {
+      return zone === "petals" || zone === "kiln"
+        ? { ...base, id: `test-${zone}`, text: `${coach.text} The test is right here.`, target: ".sw-test" }
+        : { ...base, id: "test-go", text: `${coach.text} Go to the Petals or the Kiln to run it.`, target: ".sw-zones" };
+    }
+    return { ...base, id: `guide-${coach.step}-${coach.title}`, text: `${coach.text} You do that in the station guide.`, target: ".sw-guide" };
+  }
+
   if (err) {
     return (
       <div className="sw sw-error">
@@ -292,7 +328,7 @@ export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx;
       )}
 
       {/* the suit's readouts */}
-      <section className="sw-panel sw-suit" aria-label="Suit">
+      <section className="sw-panel sw-suit" aria-label="Suit" data-explain="Your suit's screen. The clock, how long until the ice hits, how much air is left, how much radiation you have soaked up, and how many clues you have found.">
         <p className="sw-eyebrow">EVA suit</p>
         <dl>
           <div>
@@ -332,7 +368,7 @@ export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx;
       </section>
 
       {/* where to go */}
-      <nav className="sw-panel sw-zones" aria-label="Go to a zone">
+      <nav className="sw-panel sw-zones" aria-label="Go to a zone" data-explain="The six parts of the station. Tap one to glide there. Red means something is broken there; green means fixed.">
         <p className="sw-eyebrow">Go to</p>
         {ZONE_ORDER.map((id, i) => (
           <button key={id} type="button" className={`sw-zone ${zoneState[id]}`} aria-current={zone === id ? "location" : undefined} onClick={() => go(id)}>
@@ -346,10 +382,8 @@ export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx;
         </button>
       </nav>
 
-      {/* the coach */}
-      <p className="sw-coach">
-        <b>Next:</b> {coach.title}
-      </p>
+      {/* the guide */}
+      {!testShot && <Lumen tip={walkTip()} place="top-center" />}
 
       {/* the work */}
       <section className="sw-panel sw-work" aria-label={`At ${z.name}`} aria-live="polite">
@@ -402,7 +436,7 @@ export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx;
               );
             })}
             {(zone === "petals" || zone === "kiln") && <TestCard c={c} />}
-            <div className="sw-methods" role="group" aria-label="Ways to look">
+            <div className="sw-methods" role="group" aria-label="Ways to look" data-explain="Ways to look at this zone. Each takes some hours and finds different things. Some need a part you packed in the hangar.">
               {METHODS.map((m) => {
                 const o = opt((a) => a.type === "inspect" && a.zone === zone && a.method === m.id);
                 const done = g.done.includes(`${zone}:${m.id}`);

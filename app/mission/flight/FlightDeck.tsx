@@ -19,6 +19,7 @@ import { norm } from "@/lib/flight/kepler";
 import CardArt from "../CardArt";
 import type { Sound } from "../audio";
 import { FlightScene, type View } from "./scene";
+import Lumen, { type Tip } from "../../guide/Lumen";
 
 const SNAP_KEY = "eclipse-flight";
 const r0 = (n: number) => Math.round(n).toLocaleString("en-US");
@@ -75,6 +76,8 @@ interface Hud {
   scope: Scope | null;
   armed: boolean;
   burnLeftS: number;
+  steps: string[];
+  stepIdx: number;
 }
 
 /** The orbit scope: a top-down schematic with heights exaggerated so 300 km and 1,000 km read apart. */
@@ -125,6 +128,139 @@ function OrbitScope({ s }: { s: Scope }) {
 }
 
 type Overlay = "intro" | "card" | "result" | "docked" | "lost" | null;
+
+/** Each burn in plain words: a short name for the journey bar, and what Lumen says about it. */
+const STEP: Record<string, { name: string; why: string }> = {
+  depart: {
+    name: "Climb",
+    why: "You are at 300 km. Lantern 17 is way up at 1,000 km. Speeding up here swings the far side of your orbit up to its height, like a swing going higher each time you push.",
+  },
+  circularize: {
+    name: "Level off",
+    why: "You have coasted up to Lantern 17's height. Do nothing and you fall back down, so you speed up once more to stay up here.",
+  },
+  plane: {
+    name: "Tilt",
+    why: "Your path is tilted compared with Lantern 17's. This burn twists it to line up. Twisting a path costs a lot of fuel.",
+  },
+  phaseDown: {
+    name: "Catch up",
+    why: "Lantern 17 is ahead of you on the same track. Strange but true: braking drops you to an inside lane, and inside lanes are shorter and faster. You catch up, then climb back.",
+  },
+  phaseUp: {
+    name: "Climb back",
+    why: "You have caught up. Speed up to climb back into Lantern 17's lane and park just behind it.",
+  },
+  intercept: {
+    name: "Aim",
+    why: "One big burn that sends you to where Lantern 17 will be, not where it is now. Like throwing a ball to a friend who is running.",
+  },
+  match: {
+    name: "Stop beside it",
+    why: "You are arriving fast. Brake now, so you stop right next to the station instead of shooting past it.",
+  },
+};
+const stepName = (kind: string) => STEP[kind]?.name ?? "Burn";
+
+/** What Lumen says during the flight: one line, about what is happening right now. */
+function flightTip(h: Hud, overlay: Overlay): Tip | null {
+  if (overlay === "docked") return { id: "docked", title: "docked", text: "Docked! You flew real orbits all the way from the Wick. Now let's find out what is wrong with Lantern 17.", tone: "good" };
+  if (overlay) return null;
+  const c = h.conj;
+  if (c.state === "alert") {
+    return c.dodge
+      ? { id: "ice", title: "ice coming", text: "A chunk of ice is crossing our path, and it could hit us. Press Dodge: one tiny push and we're out of its way.", target: ".fd-alert .btn-lantern", tone: "warn" }
+      : { id: "ice-ok", title: "ice nearby", text: "A chunk of ice is passing close, but the computer says it will miss. You can let it go.", target: ".fd-alert", tone: "info" };
+  }
+  if (c.state === "hit" && c.tca > -12) return { id: "hit", title: "ouch", text: "The ice hit us. The hull took some damage, but we can keep flying.", tone: "warn" };
+  if (h.mode === "approach" && h.dock) {
+    const d = h.dock;
+    const limit = speedLimit(d.range);
+    if (d.closing > limit * 1.2) return { id: "dock-fast", title: "docking", text: "Too fast! Tap Slow down, or we will bump the station.", target: ".fd-pad .back", tone: "warn" };
+    if (d.closing >= 0.02 && d.closing < limit * 0.3 && d.range > 20)
+      return { id: "dock-slow", title: "docking", text: "We're crawling. Hold Closer a moment longer to pick up speed. I'll fast-forward the long drift and slow time down near the ring.", target: ".fd-pad .fwd" };
+    if (d.closing < 0.02 && d.range > 2) return { id: "dock-go", title: "last step", text: h.guide ? "Last step: docking. I keep us lined up with the ring; you control the speed. Tap Closer to start moving in." : "Line the ring up on the cross, then tap Forward to move in.", target: h.guide ? ".fd-pad .fwd" : ".fd-reticle" };
+    return { id: "dock-ok", title: "docking", text: `Good speed. Keep the speed bar green and let us drift in. We touch the ring at under ${SOFT.speed} m/s for a soft dock.`, target: ".fd-speed" };
+  }
+  if (h.mode !== "cruise") return null;
+  if (!h.node) return { id: "coast", title: "nearly there", text: "All the big burns are done. We're drifting up behind Lantern 17. Press the button to skip ahead.", target: ".fd-burn" };
+  const step = STEP[h.node.kind];
+  if (h.thrusting) return { id: `burn-${h.node.idx}`, title: `step ${h.stepIdx + 1} of ${h.steps.length}`, text: `Engine on. I'll cut it the moment we're on the new path. ${step ? step.why : ""}`, target: ".fd-progress" };
+  if (h.aligning) return { id: `turn-${h.node.idx}`, title: "turning", text: "Turning the ship to face the right way for this burn…", target: ".fd-burn" };
+  if (h.armed) return { id: `armed-${h.node.idx}`, title: "skipping ahead", text: "Fast-forwarding to the exact moment for this burn. Watch the map: the blue line is where you will go.", target: ".fd-map" };
+  return {
+    id: `step-${h.node.idx}-${h.node.kind}`,
+    title: `step ${h.stepIdx + 1} of ${h.steps.length}`,
+    text: `${step ? step.why : h.node.say} ${h.guide ? "Press the big button: I'll wait for the right moment, fire the engine and stop it for you." : "You're flying by hand: aim at Computer, and hold the burn button when the timer reaches zero."}`,
+    target: ".fd-burn",
+  };
+}
+
+/** The guided map: the same top-down view, bigger, with everything labelled in words. */
+function GuideMap({ s, next }: { s: Scope; next: string | null }) {
+  // labels: try below, above, right, left of each dot, and take the first spot that is free
+  const placed: { x: number; y: number; w: number; h: number }[] = [];
+  const free = (b: { x: number; y: number; w: number; h: number }) =>
+    b.x >= 2 && b.x + b.w <= 198 && b.y >= 2 && b.y + b.h <= 198 && !placed.some((o) => b.x < o.x + o.w && b.x + b.w > o.x && b.y < o.y + o.h && b.y + b.h > o.y);
+  const lab = (p: [number, number], text: string, color: string) => {
+    const w = text.length * 5.3 + 2;
+    const h = 10;
+    const tries = [
+      { x: p[0] - w / 2, y: p[1] + 6 },
+      { x: p[0] - w / 2, y: p[1] - 6 - h },
+      { x: p[0] + 7, y: p[1] - h / 2 },
+      { x: p[0] - 7 - w, y: p[1] - h / 2 },
+      { x: p[0] - w / 2, y: p[1] + 17 },
+      { x: p[0] - w / 2, y: p[1] - 17 - h },
+    ];
+    const b = tries.map((t) => ({ ...t, w, h })).find(free) ?? { x: Math.max(2, Math.min(198 - w, p[0] - w / 2)), y: Math.max(2, Math.min(188, p[1] + 6)), w, h };
+    placed.push(b);
+    return (
+      <text x={b.x + 1} y={b.y + 8} fill={color} fontSize="8.5" fontFamily="var(--mono)" fontWeight="600" paintOrder="stroke" stroke="#05070b" strokeWidth="3">
+        {text}
+      </text>
+    );
+  };
+  const ringR = SC.planet + 1000 * SC.perKm;
+  // the dots themselves count as taken
+  for (const p of [s.ship, s.l17, ...(s.burn ? [s.burn] : []), ...(s.frag ? [s.frag] : [])]) placed.push({ x: p[0] - 4, y: p[1] - 4, w: 8, h: 8 });
+  const you = lab(s.ship, "YOU", "#ffffff");
+  const l17 = lab(s.l17, "LANTERN 17", "#ffd08a");
+  const burn = s.burn ? lab(s.burn, next ? `${next.toUpperCase()} HERE` : "BURN HERE", "#6fe3ff") : null;
+  const ice = s.frag ? lab(s.frag, "ICE", "#ff8a7a") : null;
+  return (
+    <>
+      <svg className="fd-scope fd-map" viewBox="0 0 200 200" role="img" aria-label="Map: you, Lantern 17 and the path you will fly, seen from above">
+        <defs>
+          <radialGradient id="fd-planet2" cx="50%" cy="50%" r="50%">
+            <stop offset="70%" stopColor="#0d1828" />
+            <stop offset="100%" stopColor="#1f3b55" />
+          </radialGradient>
+        </defs>
+        <circle cx={SC.c} cy={SC.c} r={SC.planet} fill="url(#fd-planet2)" />
+        <text x={SC.c} y={SC.c + 3} textAnchor="middle" fill="#56708f" fontSize="8" fontFamily="var(--mono)">
+          PLANET
+        </text>
+        <circle cx={SC.c} cy={SC.c} r={ringR} fill="none" stroke="rgba(255,208,138,0.4)" strokeDasharray="1.5 3" />
+        <path d={s.ghost} fill="none" stroke="#ffffff" strokeOpacity="0.75" strokeWidth="1.4" />
+        {s.planned && <path d={s.planned} fill="none" stroke="#6fe3ff" strokeWidth="1.8" strokeDasharray="4 3" />}
+        {s.burn && <circle cx={s.burn[0]} cy={s.burn[1]} r="4" fill="none" stroke="#6fe3ff" strokeWidth="1.6" />}
+        {s.frag && <circle cx={s.frag[0]} cy={s.frag[1]} r="3" fill="#ff5a46" />}
+        <circle cx={s.l17[0]} cy={s.l17[1]} r="4.2" fill="#ffd08a" />
+        <circle cx={s.ship[0]} cy={s.ship[1]} r="3.6" fill="#ffffff" />
+        {you}
+        {l17}
+        {burn}
+        {ice}
+      </svg>
+      <ul className="fd-legend" aria-hidden="true">
+        <li className="now">your path now</li>
+        {s.planned && <li className="next">after the next burn</li>}
+        <li className="l17">Lantern 17&apos;s path</li>
+      </ul>
+    </>
+  );
+}
 
 function chips(d: Delta | undefined) {
   if (!d) return [];
@@ -437,6 +573,9 @@ export default function FlightDeck({
           const wantSide = Math.max(-0.25, Math.min(0.25, -k2 * d.side));
           if (ay === 0 && Math.abs(wantUp - d.vUp) > band) ay = Math.sign(wantUp - d.vUp);
           if (az === 0 && Math.abs(wantSide - d.vSide) > band) az = Math.sign(wantSide - d.vSide);
+          // and it fast-forwards the long, boring drift, back to real time for the last 80 m
+          const want = d.range > 400 && d.closing > 0.3 ? 10 : d.range > 80 && d.closing > 0.1 ? 5 : 1;
+          if (sim.warp !== want && WARPS.includes(want)) sim.setWarp(want);
         }
         sim.rcs = [Math.max(-1, Math.min(1, ax)), Math.max(-1, Math.min(1, ay)), Math.max(-1, Math.min(1, az))];
       } else if (sim.mode === "cruise" && sim.guide && overlayRef.current === null) {
@@ -557,6 +696,8 @@ export default function FlightDeck({
           scope,
           armed: pilot.current.armed,
           burnLeftS: sim.thrusting ? sim.burnSeconds(norm(sim.remaining)) : 0,
+          steps: [...sim.plan.map((n) => stepName(n.kind)), "Dock"],
+          stepIdx: sim.mode === "cruise" ? idx : sim.plan.length,
         });
       }
     };
@@ -871,7 +1012,7 @@ export default function FlightDeck({
           : "";
 
   return (
-    <div className={`fd${h?.slowmo ? " slow" : ""}${h?.mode === "approach" ? " approach" : ""}`}>
+    <div className={`fd${h?.slowmo ? " slow" : ""}${h?.mode === "approach" ? " approach" : ""}${h?.guide ? " guided" : ""}`}>
       <canvas ref={canvasRef} className="fd-canvas" aria-label="The view from your ship" />
 
       {/* target brackets */}
@@ -891,14 +1032,20 @@ export default function FlightDeck({
       {h && overlay !== "intro" && (
         <>
           {/* status: time and orbit */}
-          <section className="fd-panel fd-status" aria-label="Flight status">
+          <section
+            className="fd-panel fd-status"
+            aria-label="Flight status"
+            data-explain="The map. You are the white dot, Lantern 17 is the gold one. The white line is the path you are on now; the dashed blue line is the path you will be on after the next burn. Heights are stretched so you can see them."
+          >
             <p className="fd-eyebrow">
-              {route?.name ?? "Flight"} <b>{"//"}</b> {h.mode === "approach" ? "Final approach" : h.mode === "docked" ? "Docked" : h.node ? `Burn ${h.node.idx} of ${h.node.total}` : "Coasting"}
+              {route?.name ?? "Flight"} <b>{"//"}</b>{" "}
+              {h.mode === "approach" ? "Final approach" : h.mode === "docked" ? "Docked" : h.guide ? `Step ${h.stepIdx + 1} of ${h.steps.length}` : h.node ? `Burn ${h.node.idx} of ${h.node.total}` : "Coasting"}
             </p>
             <p className="fd-clock">
               T+{clock(h.hour)}
               {h.eclipse && <em>ECLIPSE</em>}
             </p>
+            {!h.guide && (
             <dl className="fd-orbit">
               <div>
                 <dt>Lowest</dt>
@@ -913,23 +1060,26 @@ export default function FlightDeck({
                 <dd>{h.gap < 1 ? `${r0(h.gap * 1000)} m` : `${r0(h.gap)} km`}</dd>
               </div>
             </dl>
+            )}
             {h.peri < 180 && h.mode === "cruise" && <p className="fd-warn">Your lowest point skims the atmosphere.</p>}
-            {h.scope && h.mode === "cruise" && <OrbitScope s={h.scope} />}
+            {h.scope && h.mode === "cruise" && (h.guide ? <GuideMap s={h.scope} next={h.node ? stepName(h.node.kind) : null} /> : <OrbitScope s={h.scope} />)}
+            {h.guide && h.mode !== "docked" && <p className="fd-gap">Lantern 17 is <b>{h.gap < 1 ? `${r0(h.gap * 1000)} m` : `${r0(h.gap)} km`}</b> away</p>}
           </section>
 
           {/* the ship: fuel, hull, time-warp */}
           <section className="fd-panel fd-ship" aria-label="Ship">
-            <div className="fd-tank">
+            <div className="fd-tank" data-explain="Your fuel, as how much you can still change your speed (Δv). Every burn uses some. Run out and you drift.">
               <span>Δv in the tank</span>
               <b>{r0(h.available)}</b>
               <small>m/s</small>
               <i style={{ width: `${Math.min(100, (h.available / Math.max(1, h.available + h.spent)) * 100)}%` }} />
             </div>
-            <div className="fd-hull">
+            <div className="fd-hull" data-explain="How healthy your ship is, out of 100. Ice hits and hard bumps take it down.">
               <span>Hull</span>
               <b className={h.hull < 60 ? "low" : ""}>{h.hull}</b>
             </div>
-            <div className="fd-warp" role="group" aria-label="Time-warp">
+            {!h.guide && (
+            <div className="fd-warp" role="group" aria-label="Time-warp" data-explain="Time-warp: makes time run faster while you coast. The big button does this for you in Guide mode.">
               <button type="button" onClick={() => setWarp(-1)} aria-label="Slower time-warp" disabled={h.warp <= 1}>
                 −
               </button>
@@ -943,12 +1093,41 @@ export default function FlightDeck({
                 </button>
               )}
             </div>
+            )}
           </section>
 
           {/* the computer, or the approach */}
           {h.mode === "cruise" && (
             <section className={`fd-panel fd-computer ${burnState}`} aria-label="Flight computer" aria-live="polite">
-              {h.node ? (
+              {h.guide && (
+                <ol className="fd-journey" aria-label="Your journey" data-explain="Your whole trip, step by step. The lit step is the one you are on. Each step is one burn of the engine; the last one is docking.">
+                  {h.steps.map((st, i) => (
+                    <li key={`${i}-${st}`} className={i < h.stepIdx ? "done" : i === h.stepIdx ? "now" : ""} aria-current={i === h.stepIdx ? "step" : undefined}>
+                      <i>{i < h.stepIdx ? "✓" : i + 1}</i>
+                      <span>{st}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {h.node && h.guide ? (
+                <>
+                  <p className="fd-say">
+                    <b>{stepName(h.node.kind)}.</b>{" "}
+                    {h.thrusting
+                      ? `Engine on: ${mmss(h.burnLeftS)} to go.`
+                      : h.aligning
+                        ? "Turning the ship…"
+                        : h.node.toStart > 0
+                          ? `The engine lights in ${mmss(h.node.toStart)}.`
+                          : "Ready to fire."}
+                  </p>
+                  {h.thrusting && (
+                    <div className="fd-progress" aria-hidden="true">
+                      <i style={{ width: `${Math.min(100, (h.burnDv / Math.max(0.1, h.burnDv + h.remaining)) * 100)}%` }} />
+                    </div>
+                  )}
+                </>
+              ) : h.node ? (
                 <>
                   <p className="fd-eyebrow">
                     Computer <b>{"//"}</b> {h.node.label}
@@ -979,7 +1158,7 @@ export default function FlightDeck({
                   {h.aligning && <p className="fd-hint">Turning the ship to the burn direction…</p>}
                 </>
               ) : (
-                <p className="fd-say">Closing on the approach point.</p>
+                <p className="fd-say">{h.guide ? <><b>Drift in.</b> Coasting up behind Lantern 17.</> : "Closing on the approach point."}</p>
               )}
               {h.guide ? (
                 <button type="button" className="fd-burn" onClick={mainButton} onContextMenu={(e) => e.preventDefault()}>
@@ -995,7 +1174,7 @@ export default function FlightDeck({
                             : "START THE BURN"}
                   </span>
                   <small>
-                    {h.thrusting || h.armed ? "tap to stop" : h.node ? "one tap: it skips ahead, fires and stops by itself" : "fast-forward to the station"}
+                    {h.thrusting || h.armed ? "tap to stop" : h.node ? "one tap: skips ahead, fires and stops by itself" : "fast-forward to the station"}
                   </small>
                 </button>
               ) : (
@@ -1023,7 +1202,7 @@ export default function FlightDeck({
           )}
 
           {/* aim and guide */}
-          {h.mode === "cruise" && (
+          {h.mode === "cruise" && !h.guide && (
             <section className="fd-panel fd-aim" aria-label="Aim">
               <p className="fd-eyebrow">Aim the ship</p>
               <div className="fd-aim-grid">
@@ -1053,7 +1232,13 @@ export default function FlightDeck({
                 Cockpit
               </button>
             )}
+            {h.guide && h.mode !== "docked" && (
+              <button type="button" className="fd-expert" onClick={toggleGuide} title="Show every control and fly it yourself">
+                Expert
+              </button>
+            )}
           </nav>
+          {(overlay === null || overlay === "docked") && <Lumen tip={flightTip(h, overlay)} place="bottom-left" avoid={false} />}
 
           {/* the ice alert */}
           {(h.conj.state === "alert" || (h.conj.state !== "pending" && h.conj.tca > -12)) && (
@@ -1116,20 +1301,41 @@ export default function FlightDeck({
               Fly to <em>Lantern 17.</em>
             </h1>
             {route && route.id !== "skipWindow" && <p className="fd-lede">You waited {route.out[0].hours} hours for the launch window. Now the burns are yours.</p>}
-            <ol className="fd-lessons">
+            <ol className="fd-plan3" aria-label="The plan">
               <li>
-                <b>Burn, then drift.</b> No brakes, no air. Your engine changes your orbit; then you coast.
+                <svg viewBox="0 0 80 60" aria-hidden="true">
+                  <circle cx="40" cy="62" r="26" fill="#13253a" />
+                  <path d="M14 58 Q 40 8 66 58" fill="none" stroke="#6fe3ff" strokeWidth="2" strokeDasharray="4 3" />
+                  <circle cx="17" cy="50" r="3" fill="#fff" />
+                  <circle cx="40" cy="12" r="3.5" fill="#ffd08a" />
+                </svg>
+                <b>1 · Climb up</b>
+                <span>You start at 300 km. Lantern 17 is at 1,000 km. The engine lifts you to its height.</span>
               </li>
               <li>
-                <b>Forward makes you climb. Braking makes you faster.</b> A lower orbit is a quicker one. Your gut will be wrong; the computer won&apos;t.
+                <svg viewBox="0 0 80 60" aria-hidden="true">
+                  <path d="M6 40 A 40 40 0 0 1 74 40" fill="none" stroke="rgba(255,208,138,0.5)" strokeWidth="2" strokeDasharray="2 3" />
+                  <path d="M12 46 A 34 34 0 0 1 60 22" fill="none" stroke="#6fe3ff" strokeWidth="2" />
+                  <circle cx="60" cy="22" r="3" fill="#fff" />
+                  <circle cx="66" cy="28" r="3.5" fill="#ffd08a" />
+                </svg>
+                <b>2 · Catch up</b>
+                <span>It is somewhere else on the circle. You line up so you both arrive at the same spot.</span>
               </li>
               <li>
-                <b>One button.</b> Tap it: the game skips ahead to the next burn, turns the ship, fires and stops by itself. Read what the computer says while it does.
-              </li>
-              <li>
-                <b>The last kilometre is on thrusters.</b> The computer keeps you lined up; you tap Forward and Back to keep the speed green, and touch the ring slower than {SOFT.speed} m/s.
+                <svg viewBox="0 0 80 60" aria-hidden="true">
+                  <rect x="46" y="20" width="22" height="20" rx="3" fill="none" stroke="#ffd08a" strokeWidth="2" />
+                  <circle cx="46" cy="30" r="4" fill="none" stroke="#ffd08a" strokeWidth="2" />
+                  <path d="M12 30 H 34" stroke="#fff" strokeWidth="2" strokeDasharray="3 3" />
+                  <circle cx="12" cy="30" r="3" fill="#fff" />
+                </svg>
+                <b>3 · Dock gently</b>
+                <span>The last few metres: you keep the speed slow, under {SOFT.speed} m/s.</span>
               </li>
             </ol>
+            <p className="fd-lede">
+              <b>You press one button for each step.</b> It waits for the right moment, fires the engine and stops it. Lumen, the little light at the bottom, tells you what is happening and why.
+            </p>
             <p className="fd-fine">
               Real gravity, real burns: Earth-size planet, 300 km to 1,000 km. Your {engine.note.split(":")[0]} engine gives {r0(engine.newtons)} N
               {engine.source === "game" ? " (a game value)" : ""}.
@@ -1298,6 +1504,60 @@ function ApproachPanel({
     onPointerCancel: () => setPad(axis, 0),
     onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
   });
+  if (h.guide) {
+    // Guide: the computer keeps you centred. You only choose the speed, with two big buttons.
+    const frac = Math.max(0, Math.min(1, d.closing / (limit * 2)));
+    const word =
+      closingTone === "red"
+        ? "Too fast"
+        : d.closing < -0.05
+          ? "Backing away"
+          : d.closing < 0.02
+            ? "Stopped"
+            : closingTone === "amber"
+              ? "A bit fast"
+              : d.closing < limit * 0.3 && d.range > 20
+                ? "Slow: speed up"
+                : "Good speed";
+    return (
+      <section className="fd-panel fd-approach guided" aria-label="Docking">
+        <p className="fd-eyebrow">
+          Docking <b>{"//"}</b> {d.range > 1000 ? `${r1(d.range / 1000)} km` : `${est ? "~" : ""}${r0(range)} m`} to the ring
+        </p>
+        <div className={`fd-speed ${closingTone}`} data-explain="How fast you are moving towards the station. Keep it in the green part. The closer you get, the slower green becomes, so you touch the ring gently.">
+          <div className="fd-speed-top">
+            <b>{word}</b>
+            <span>
+              {est ? "~" : ""}
+              {r2(Math.max(0, d.closing))} m/s · green is under {r2(limit)}
+            </span>
+          </div>
+          <div className="fd-speed-bar" aria-hidden="true">
+            <em />
+            <i style={{ left: `${frac * 100}%` }} />
+          </div>
+        </div>
+        <div className="fd-pad guided" role="group" aria-label="Speed: hold to fire">
+          <button type="button" className="back" {...hold(0, -1)} aria-label="Slow down (S)">
+            Slow down
+            <small>hold · S</small>
+          </button>
+          <button type="button" className="fwd" {...hold(0, 1)} aria-label="Closer (W)">
+            Closer
+            <small>hold · W</small>
+          </button>
+        </div>
+        {view !== "cockpit" && d.range < 120 && (
+          <p className="fd-hint">
+            <button type="button" className="fd-link" onClick={() => setView("cockpit")}>
+              Look through the cockpit window
+            </button>
+          </p>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section className="fd-panel fd-approach" aria-label="Docking">
       <p className="fd-eyebrow">

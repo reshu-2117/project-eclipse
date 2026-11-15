@@ -1,5 +1,7 @@
 "use client";
 
+import { PLAIN, plainFor } from "@/lib/game/data/plain";
+import Lumen, { type Tip } from "../guide/Lumen";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ADDONS,
@@ -95,6 +97,7 @@ interface OptProps {
 function Opt({ id, name, source, nums, gain, cost, anchor, on, locked, dv, credits, flash, onPick }: OptProps) {
   const ref = useRef<HTMLButtonElement>(null);
   const mine = flash?.id === id ? flash : null;
+  const plain = plainFor(id);
   const reduce = useReducedMotion();
   useEffect(() => {
     if (mine && !reduce) {
@@ -135,8 +138,23 @@ function Opt({ id, name, source, nums, gain, cost, anchor, on, locked, dv, credi
             </span>
           )}
         </span>
-        {gain && <span className="hg-gain">{gain}</span>}
-        {cost && <span className="hg-cost">{cost}</span>}
+        {plain ? (
+          <>
+            <span className="hg-plain best">
+              <b>Great for</b> {plain.best}
+            </span>
+            <span className="hg-plain worst">
+              <b>Bad at</b> {plain.worst}
+            </span>
+            {on && gain && <span className="hg-gain">{gain}</span>}
+            {on && cost && <span className="hg-cost">{cost}</span>}
+          </>
+        ) : (
+          <>
+            {gain && <span className="hg-gain">{gain}</span>}
+            {cost && <span className="hg-cost">{cost}</span>}
+          </>
+        )}
         {anchor && <span className="hg-anchor">{anchor}</span>}
         {locked && <span className="hg-locked">{locked}</span>}
       </button>
@@ -294,6 +312,23 @@ export default function Hangar({
   const nextBay = BAYS[bayIndex + 1];
   const prevBay = BAYS[bayIndex - 1];
 
+  // Lumen: one line for the bay you are in, pointing at the thing that matters now
+  const reachable = fit.filter((r) => r.fits).length;
+  const tip: Tip =
+    blocks.length > 0 && bay === "review"
+      ? { id: `block-${blocks[0].id}`, title: "can't launch yet", text: `${blocks[0].text}`, target: ".hg-gantry", tone: "warn" }
+      : reachable === 0
+        ? { id: "noreach", title: "fuel", text: "Your ship can't reach Lantern 17 yet. The big number on the right is your fuel. Add fuel, or swap a heavy part for a lighter one, until a route turns green.", target: ".hg-dv", tone: "warn" }
+        : bay === "hull"
+          ? { id: "hull", title: "step 1 of 4", text: "Pick the size of your ship. A bigger ship carries more, but it is heavier, so the same fuel takes you less far. Tender is a safe first pick.", target: ".hg-left" }
+          : bay === "parts"
+            ? { id: "parts", title: "step 2 of 4", text: "Pick one part from each row. Each card says what it is great for and what it is bad at. Keep an eye on the big number on the right: that is how far your fuel takes you.", target: ".hg-dv" }
+            : bay === "suits"
+              ? { id: "suits", title: "step 3 of 4", text: "Suits are for going outside at Lantern 17. Not sure? Leave the defaults and move on.", target: ".hg-nav" }
+              : warns.length > 0
+                ? { id: `warn-${warns.length}`, title: "step 4 of 4", text: `Your ship can fly, but I see ${warns.length} risk${warns.length === 1 ? "" : "s"} listed here. Fix them, or launch anyway and live with them.`, target: ".hg-gantry" }
+                : { id: "ready", title: "step 4 of 4", text: "Everything checks out. Press Launch.", target: ".hg-gantry .btn-lantern", tone: "good" };
+
   // the gauge: 0 to 3,000 m/s, with a tick for what each route needs
   const GMAX = 3000;
   const pct = (v: number) => `${Math.max(0, Math.min(100, (v / GMAX) * 100))}%`;
@@ -304,7 +339,7 @@ export default function Hangar({
         <p className="eyebrow">
           The Wick <b>{"//"}</b> Orbital dock · 300 km
         </p>
-        <ol className="hg-bays" aria-label="Hangar bays">
+        <ol className="hg-bays" aria-label="Hangar bays" data-explain="The four steps of building your ship. Go left to right: the hull, the parts, the suits, then a final check.">
           {BAYS.map((b, i) => (
             <li key={b.id}>
               <button
@@ -355,7 +390,17 @@ export default function Hangar({
                           <span><small>SENSORS</small> {h.sensorSlots}</span>
                           <span><small>CR</small> {h.cost}</span>
                         </span>
-                        <span className="hg-gain">{h.note}</span>
+                        {PLAIN[h.id] && (
+                          <>
+                            <span className="hg-plain best">
+                              <b>Great for</b> {PLAIN[h.id].best}
+                            </span>
+                            <span className="hg-plain worst">
+                              <b>Bad at</b> {PLAIN[h.id].worst}
+                            </span>
+                          </>
+                        )}
+                        {l.hull === h.id && <span className="hg-gain">{h.note}</span>}
                       </button>
                     </div>
                   ))}
@@ -768,11 +813,11 @@ export default function Hangar({
 
         {/* ───────── centre: the blueprint ───────── */}
         <div className="hg-centre">
-          <div className="hg-sheet">
+          <div className="hg-sheet" data-explain="A drawing of your ship. It changes as you pick parts, so you can see what you are building.">
             <Blueprint loadout={l} stats={stats} focus={focus} />
           </div>
 
-          <div className={`hg-gantry${blocks.length ? " held" : ""}`}>
+          <div className={`hg-gantry${blocks.length ? " held" : ""}`} data-explain="The launch pad. When it says ready, press Launch. If something is wrong it tells you what.">
             <div>
               <p className="eyebrow">Launch gantry</p>
               <p className="hg-gantry-line">
@@ -808,12 +853,12 @@ export default function Hangar({
 
         {/* ───────── right: the live numbers ───────── */}
         <aside className="hg-right" aria-label="Live ship numbers">
-          <div className="hg-dv">
+          <div className="hg-dv" data-explain="Your fuel, counted as how much you can change your speed (Δv, in metres per second). Every route to Lantern 17 costs some. More fuel, or a lighter ship, makes this number bigger.">
             <span>Δv · speed budget</span>
             <b>{r0(dvShown)}</b>
             <small>m/s</small>
           </div>
-          <div className="hg-gauge" role="img" aria-label={`Δv ${r0(stats.dv)} metres per second. ${fit.filter((r) => r.fits).length} of 5 routes are in reach.`}>
+          <div className="hg-gauge" data-explain="The bar is your fuel. Each numbered tick is what one route needs. If your bar passes a tick, you can fly that route." role="img" aria-label={`Δv ${r0(stats.dv)} metres per second. ${fit.filter((r) => r.fits).length} of 5 routes are in reach.`}>
             <div className="hg-gauge-track">
               <i style={{ width: pct(stats.dv) }} />
               {fit.map((r, n) => (
@@ -825,7 +870,7 @@ export default function Hangar({
             <p>Ticks show what each route needs, with a 10% margin.</p>
           </div>
 
-          <dl className="hg-dl">
+          <dl className="hg-dl" data-explain="Your ship's vital numbers: how heavy it is, how much fuel and power it carries, how long the power lasts, and how exact your tests at the station will be.">
             <div>
               <dt>Dry mass</dt>
               <dd>{r0(stats.dryKg)} kg</dd>
@@ -852,7 +897,7 @@ export default function Hangar({
           <Meter label="Budget" value={stats.credits} max={BUDGET} unit="credits" over={stats.credits > BUDGET} />
 
           <h3 className="hg-h3">Routes in reach</h3>
-          <ol className="hg-routes">
+          <ol className="hg-routes" data-explain="The five ways to fly to Lantern 17, from cheapest to fastest. Green means you have the fuel for it. Red means you don't.">
             {fit.map((r, n) => (
               <li key={r.id} className={r.fitsWithMargin ? "ok" : r.fits ? "tight" : "no"}>
                 <span className="n">{n + 1}</span>
@@ -870,6 +915,7 @@ export default function Hangar({
         </aside>
       </div>
 
+      {!launching && <Lumen tip={tip} />}
       {launching && (
         <div className="hg-launch" role="status" aria-live="assertive">
           <p className="eyebrow">Launch gantry</p>
@@ -890,7 +936,7 @@ export default function Hangar({
 function Meter({ label, value, max, unit, over }: { label: string; value: number; max: number; unit: string; over: boolean }) {
   const pct = Math.max(0, Math.min(100, (value / max) * 100));
   return (
-    <div className={`hg-meter${over ? " over" : ""}`}>
+    <div className={`hg-meter${over ? " over" : ""}`} data-explain={label === "Budget" ? "Money. Every part costs credits, and you can't go over the budget." : "Room inside the ship. Parts take space; if the bar goes red, nothing more fits."}>
       <div>
         <span>{label}</span>
         <b>

@@ -14,6 +14,8 @@ import type { Sound } from "./audio";
 import { useReducedMotion } from "./Opening";
 
 /** The briefing: the Director's terminal. What we know, what we don't, and the five meters the game is played on. */
+import Lumen from "../guide/Lumen";
+
 export default function Briefing({ sound, say, onAccept }: { sound: Sound; say: (line: VoiceLine) => void; onAccept: () => void }) {
   const reduce = useReducedMotion();
   const [leaving, setLeaving] = useState(false);
@@ -53,7 +55,7 @@ export default function Briefing({ sound, say, onAccept }: { sound: Sound; say: 
         </header>
 
         <div className="ms-brief-grid">
-          <section className="ms-term" aria-labelledby="brief-msg">
+          <section className="ms-term" aria-labelledby="brief-msg" data-explain="Your orders from the Director, and what nobody knows yet. Finding out is your job.">
             <p className="ms-term-bar">
               <i /> <i /> <i /> <span>OPS &gt; DIRECTOR &gt; CREW</span>
             </p>
@@ -77,7 +79,7 @@ export default function Briefing({ sound, say, onAccept }: { sound: Sound; say: 
             </ul>
           </section>
 
-          <aside className="ms-meters-card" aria-labelledby="brief-meters">
+          <aside className="ms-meters-card" aria-labelledby="brief-meters" data-explain="The five things you are scored on. Every choice you make moves at least one of them up or down.">
             <h2 id="brief-meters" className="ms-term-h">
               The five meters
             </h2>
@@ -98,6 +100,16 @@ export default function Briefing({ sound, say, onAccept }: { sound: Sound; say: 
           </aside>
         </div>
 
+        {!leaving && (
+          <Lumen
+            tip={{
+              id: "briefing",
+              title: "the job",
+              text: "Hi, I'm Lumen. I'll stay with you the whole mission. The job: Lantern 17, one of the mirrors that lights the cities, is dimming. Build a ship, fly up to it, find out why, and decide what to do. Tap me any time to hide me.",
+              target: ".ms-brief-go .btn-lantern",
+            }}
+          />
+        )}
         <div className="ms-brief-go">
           <button ref={go} type="button" className="btn btn-lantern" onClick={accept} disabled={leaving}>
             {leaving ? "Heading to the Wick…" : "Accept the mission"} {!leaving && <span aria-hidden="true">↗</span>}

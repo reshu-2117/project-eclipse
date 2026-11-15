@@ -200,7 +200,7 @@ export const ARRIVE: VoiceLine = {
 export const FLY_START: VoiceLine = {
   id: "dir-fly",
   role: "director",
-  text: "This one's yours. The computer plots the burns, but you fly them. Hold the burn when it tells you. And remember: in orbit, nothing works the way your gut says.",
+  text: "This one's yours. The computer plots each burn; you press go. Lumen will tell you what every burn does. And remember: in orbit, nothing works the way your gut says.",
 };
 
 export const FLY_BRAKE: VoiceLine = {

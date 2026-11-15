@@ -7,6 +7,8 @@ import { ROUTE_ENTER, type VoiceLine } from "@/lib/game/data/story";
 import FlightMap from "./FlightMap";
 import type { Sound } from "./audio";
 import { useReducedMotion } from "./Opening";
+import Lumen, { type Tip } from "../guide/Lumen";
+import { PLAIN_ROUTE } from "@/lib/game/data/plain";
 
 const r0 = (n: number) => Math.round(n).toLocaleString("en-US");
 const r1 = (n: number) => (Math.round(n * 10) / 10).toLocaleString("en-US");
@@ -91,8 +93,15 @@ export default function Route({
   const selStatus = status(sel);
   const selTot = routeTotals(sel);
 
+  const tip: Tip = confirming
+    ? { id: `confirm-${sel}`, title: "careful", text: selStatus.s === "dry" ? "This route needs more fuel than you have. You would drift past Lantern 17. Pick a cheaper route." : "You can reach Lantern 17 on this route, but you might not have enough fuel to get home.", target: ".rt-confirm", tone: "warn" }
+    : selStatus.s === "dry" || selStatus.s === "short"
+      ? { id: `pick-${sel}-${selStatus.s}`, title: "pick a route", text: `${ROUTES[sel].name} needs more fuel than you have. Try a green one: green means your tank covers it.`, target: ".rt-cards", tone: "warn" }
+      : { id: `go-${sel}`, title: "pick a route", text: `Lantern 17 circles the planet higher up than you. To meet it, you climb to its height and arrive exactly where it will be, like throwing a ball to where a friend is running. Slow routes save fuel; fast ones arrive sooner. ${ROUTES[sel].name} works for your ship. Press Fly when ready.`, target: ".rt-go .btn-lantern" };
+
   return (
     <div className="rt">
+      {!burning && <Lumen tip={tip} />}
       <header className="rt-head">
         <p className="eyebrow">
           Launch gantry <b>{"//"}</b> Choose your route
@@ -106,7 +115,7 @@ export default function Route({
       </header>
 
       <div className="rt-grid">
-        <ol className="rt-cards" aria-label="Route plans">
+        <ol className="rt-cards" aria-label="Route plans" data-explain="Five ways to fly there, from cheapest to fastest. OUT is the fuel to get there, HOME is the fuel to get back, ARRIVE is how many hours it takes.">
           {ROUTE_ORDER.map((id, n) => {
             const r = ROUTES[id];
             const t = routeTotals(id);
@@ -131,7 +140,7 @@ export default function Route({
                       {s.s === "fits" ? "fits" : s.s === "tight" ? "no margin" : s.s === "short" ? `short ${r0(s.short)} to get home` : `short ${r0(s.short)} on the way out`}
                     </span>
                   </span>
-                  <span className="rt-card-sum">{r.summary}</span>
+                  <span className="rt-card-sum">{PLAIN_ROUTE[id] ?? r.summary}</span>
                   <span className="rt-nums">
                     <span><small>OUT</small> {r0(t.outDv)} m/s</span>
                     <span><small>HOME</small> {r0(t.backDv)} m/s</span>
@@ -146,7 +155,7 @@ export default function Route({
         </ol>
 
         <div className="rt-right">
-          <div className="rt-map">
+          <div className="rt-map" data-explain="The planet from above. The bright path is how you would fly this route: from the Wick, your home station, up to Lantern 17's height.">
             <FlightMap
               route={showing}
               hover={hover}
@@ -167,7 +176,7 @@ export default function Route({
               <p className="rt-teach">{route.teaches}</p>
             </div>
 
-            <div className="rt-bar" role="img" aria-label={`You have ${r0(have)} metres per second. This route needs ${r0(tot.totalDv)}, or ${r0(tot.withMarginDv)} with margin.`}>
+            <div className="rt-bar" data-explain="Your fuel against what this route costs. If your bar reaches past the line, you have enough." role="img" aria-label={`You have ${r0(have)} metres per second. This route needs ${r0(tot.totalDv)}, or ${r0(tot.withMarginDv)} with margin.`}>
               {(() => {
                 const max = Math.max(have, tot.withMarginDv) * 1.08;
                 const p = (v: number) => `${Math.min(100, (v / max) * 100)}%`;
@@ -187,7 +196,7 @@ export default function Route({
               })()}
             </div>
 
-            <ul className="rt-facts">
+            <ul className="rt-facts" data-explain="When you would arrive, and how much time that leaves before the ice reaches the station.">
               <li>
                 <small>You arrive</small>
                 <b>hour {r1(tot.arriveH)}</b>

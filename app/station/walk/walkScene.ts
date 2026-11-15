@@ -95,7 +95,7 @@ export class WalkScene {
   private headlamp: THREE.SpotLight;
 
   constructor(canvas: HTMLCanvasElement, opts: { hull: HullId; engine: EngineId; shield: ShieldId }) {
-    this.cinema = createCinema(canvas, this.scene, this.camera);
+    this.cinema = createCinema(canvas, this.scene, this.camera, { maxPixelRatio: 1.25, shadows: false });
     this.scene.environment = spaceEnvironment(this.cinema.renderer);
     this.scene.environmentIntensity = 0.55;
     this.scene.add(new THREE.HemisphereLight(0x0c1220, 0x2a3c52, 1.0));
@@ -138,14 +138,14 @@ export class WalkScene {
       fragmentShader: PLANET_FRAG,
     });
     // the shader uses z as the planet's up; turn it so +z points at the station
-    const planet = new THREE.Mesh(new THREE.SphereGeometry(R_PLANET, 160, 100), this.planetMat);
+    const planet = new THREE.Mesh(new THREE.SphereGeometry(R_PLANET, 96, 64), this.planetMat);
     planet.rotation.x = -Math.PI / 2;
     planet.position.set(0, -(R_PLANET + 1e6), 0);
     planet.frustumCulled = false;
     planet.userData.tempK = 150;
     this.scene.add(planet);
     const atmo = new THREE.Mesh(
-      new THREE.SphereGeometry(R_PLANET * 1.025, 96, 48),
+      new THREE.SphereGeometry(R_PLANET * 1.025, 64, 32),
       new THREE.ShaderMaterial({ uniforms: { uDim: { value: 1 } }, vertexShader: PLANET_VERT, fragmentShader: ATMO_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.BackSide }),
     );
     atmo.position.copy(planet.position);

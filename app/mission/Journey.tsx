@@ -8,6 +8,7 @@ import { ARRIVE, DISTRESS, type VoiceLine } from "@/lib/game/data/story";
 import CardArt from "./CardArt";
 import FlightMap from "./FlightMap";
 import type { Sound } from "./audio";
+import Lumen, { type Tip } from "../guide/Lumen";
 
 const r0 = (n: number) => Math.round(n).toLocaleString("en-US");
 const r1 = (n: number) => (Math.round(n * 10) / 10).toLocaleString("en-US");
@@ -141,6 +142,15 @@ export default function Journey({
 
   return (
     <div className="jn">
+      <Lumen
+        tip={
+          (mode === "card"
+            ? { id: `card-${game.card}`, title: "on the way", text: "Something happened on the way. Read the card, then pick one answer. Each answer costs something different: fuel, time, or safety.", target: ".jn-card" }
+            : mode === "result"
+              ? { id: `result-${game.card}`, title: "what it did", text: "This is what your choice changed. Green went up, red went down. Press the button to carry on.", target: ".jn-card .btn-lantern" }
+              : { id: "arrival", title: "you made it", text: "You are docked at Lantern 17. Next is the Station Mission: look around, find out what is wrong, and decide what to do.", target: ".ms-gate-actions .btn-lantern", tone: "good" }) as Tip
+        }
+      />
       <header className="jn-head">
         <p className="eyebrow">
           {route ? route.name : "Flight"} <b>{"//"}</b> {mode === "arrival" ? "Arrived" : `Event ${Math.min(idx + 1, n)} of ${n}`}

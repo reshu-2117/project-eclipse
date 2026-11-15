@@ -1,0 +1,237 @@
+/* ───────── Lumen, the guide (lumen-) ───────── */
+.lumen {
+  position: fixed;
+  z-index: 70;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  max-width: min(400px, calc(100vw - 24px));
+  pointer-events: none;
+  font-family: var(--sans);
+}
+.lumen.bottom-left {
+  left: 16px;
+  bottom: 16px;
+}
+.lumen.bottom-right {
+  right: 16px;
+  bottom: 16px;
+  flex-direction: row-reverse;
+}
+.lumen.bottom-left.flip {
+  left: auto;
+  right: 16px;
+  flex-direction: row-reverse;
+}
+.lumen.bottom-right.flip {
+  right: auto;
+  left: 16px;
+  flex-direction: row;
+}
+.lumen.top-left {
+  left: 16px;
+  top: 76px;
+  align-items: flex-start;
+}
+.lumen.top-center {
+  left: 50%;
+  top: 74px;
+  transform: translateX(-50%);
+  align-items: flex-start;
+  width: max-content;
+  max-width: min(540px, calc(100vw - 560px));
+}
+.lumen > * {
+  pointer-events: auto;
+}
+.lumen-orb {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  filter: drop-shadow(0 0 14px rgba(255, 170, 70, 0.7));
+  animation: lumen-bob 3.2s ease-in-out infinite;
+}
+.lumen-orb svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.lumen-orb .halo {
+  transform-origin: 32px 32px;
+  animation: lumen-pulse 2.4s ease-in-out infinite;
+}
+.lumen-orb .eyes {
+  transform-origin: 32px 31px;
+  animation: lumen-blink 5s infinite;
+}
+.lumen-orb:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+.lumen-bubble {
+  position: relative;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 181, 71, 0.45);
+  background: linear-gradient(180deg, rgba(40, 24, 8, 0.94), rgba(14, 10, 6, 0.94));
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(255, 150, 50, 0.15);
+  color: var(--frost);
+  animation: lumen-in 0.35s ease;
+}
+.lumen.warn .lumen-bubble {
+  border-color: rgba(255, 106, 85, 0.7);
+  background: linear-gradient(180deg, rgba(60, 14, 8, 0.95), rgba(20, 6, 4, 0.95));
+}
+.lumen.good .lumen-bubble {
+  border-color: rgba(125, 255, 176, 0.55);
+}
+.lumen-name {
+  margin: 0 0 4px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.lumen-name span {
+  margin-left: 6px;
+  color: var(--dim);
+}
+.lumen-text {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+.lumen-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.lumen-actions button {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 208, 138, 0.35);
+  background: rgba(255, 181, 71, 0.08);
+  color: var(--amber-soft);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.lumen-actions button[aria-pressed="true"] {
+  background: rgba(255, 181, 71, 0.25);
+  color: #fff;
+}
+.lumen-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+/* the ring around the thing to tap */
+.lumen-ring {
+  position: fixed;
+  z-index: 69;
+  pointer-events: none;
+  border-radius: 14px;
+  border: 2px solid #ffd08a;
+  box-shadow:
+    0 0 0 4px rgba(255, 181, 71, 0.25),
+    0 0 26px rgba(255, 160, 60, 0.6);
+  animation: lumen-ring 1.3s ease-in-out infinite;
+  transition:
+    left 0.2s ease,
+    top 0.2s ease,
+    width 0.2s ease,
+    height 0.2s ease;
+}
+
+/* "What's this?" mode: explainable panels glow */
+body.lumen-explaining [data-explain] {
+  outline: 2px dashed rgba(255, 208, 138, 0.75) !important;
+  outline-offset: 3px;
+  cursor: help !important;
+}
+
+@keyframes lumen-bob {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes lumen-pulse {
+  50% {
+    transform: scale(1.12);
+    opacity: 0.5;
+  }
+}
+@keyframes lumen-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+@keyframes lumen-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes lumen-ring {
+  50% {
+    box-shadow:
+      0 0 0 8px rgba(255, 181, 71, 0.12),
+      0 0 36px rgba(255, 160, 60, 0.8);
+  }
+}
+
+@media (max-width: 620px) {
+  .lumen {
+    max-width: calc(100vw - 16px);
+  }
+  .lumen.bottom-left,
+  .lumen.bottom-right {
+    left: 8px;
+    right: 8px;
+    bottom: auto;
+    top: 64px;
+  }
+  .lumen-orb {
+    width: 48px;
+    height: 48px;
+  }
+  .lumen-text {
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lumen-orb,
+  .lumen-orb .halo,
+  .lumen-orb .eyes,
+  .lumen-ring,
+  .lumen-bubble {
+    animation: none;
+  }
+}
+
+/* on phones the bubble sits at the top; if that covers the target, it moves to the bottom */
+@media (max-width: 620px) {
+  .lumen.bottom-left.flip,
+  .lumen.bottom-right.flip {
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: 8px;
+    flex-direction: row;
+  }
+}

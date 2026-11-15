@@ -96,7 +96,14 @@ export interface Cinema {
   pixelRatio(): number;
 }
 
-export function createCinema(canvas: HTMLCanvasElement, scene: THREE.Scene, camera: THREE.Camera): Cinema {
+export interface CinemaOptions {
+  /** the sharpest the governor may go (the walk caps lower: it has more on screen) */
+  maxPixelRatio?: number;
+  /** shadow maps cost a pass per casting light; the station walk has none that need them */
+  shadows?: boolean;
+}
+
+export function createCinema(canvas: HTMLCanvasElement, scene: THREE.Scene, camera: THREE.Camera, opts: CinemaOptions = {}): Cinema {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: false,
@@ -108,10 +115,10 @@ export function createCinema(canvas: HTMLCanvasElement, scene: THREE.Scene, came
   renderer.toneMappingExposure = 1.0;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.setClearColor(0x000000, 1);
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = opts.shadows ?? true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  const maxPr = Math.min(window.devicePixelRatio || 1, 1.75);
+  const maxPr = Math.min(window.devicePixelRatio || 1, opts.maxPixelRatio ?? 1.75);
   let pr = maxPr;
   renderer.setPixelRatio(pr);
 
@@ -157,15 +164,16 @@ export function createCinema(canvas: HTMLCanvasElement, scene: THREE.Scene, came
       acc += dt;
       frames++;
       cool = Math.max(0, cool - dt);
-      if (acc > 1.5) {
+      // decide quickly when frames are slow (a laggy UI is worse than a slightly softer picture)
+      if (acc > 1) {
         const fps = frames / acc;
         acc = 0;
         frames = 0;
         if (cool <= 0) {
-          if (fps < 38 && pr > 0.75) {
-            pr = Math.max(0.75, pr - 0.25);
+          if (fps < 45 && pr > 0.6) {
+            pr = Math.max(0.6, pr - (fps < 25 ? 0.4 : 0.2));
             setSize(w, h);
-            cool = 3;
+            cool = 2;
           } else if (fps > 57 && pr < maxPr) {
             pr = Math.min(maxPr, pr + 0.25);
             setSize(w, h);

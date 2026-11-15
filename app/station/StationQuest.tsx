@@ -15,6 +15,7 @@ import Debrief from "./Debrief";
 import { Decision, FinalHours } from "./Decide";
 import { Fix, Investigate, Look, Prove, Report } from "./Steps";
 import { STEPS, coach, clueCount, stepDone, r0, r1, type QuestCtx, type StepId } from "./shared";
+import Lumen, { type Tip } from "../guide/Lumen";
 
 const RUN_KEY = "eclipse-run";
 interface Run {
@@ -276,6 +277,17 @@ export default function StationQuest() {
   const ctx: QuestCtx = { game: g, opts: g.phase === "debrief" ? [] : options(g), run: doRun, say, from, flash };
   const co = coach(g);
   const active: StepId = pick ?? co.step;
+  const walking = walk && g.phase !== "debrief" && g.phase !== "choice" && g.phase !== "endgame" && !(intro && !g.surveyed);
+  const tip: Tip | null =
+    g.phase === "debrief"
+      ? { id: "debrief", title: "how it went", text: "This is how your mission turned out, and why. Scroll down for what you could do better, then fly it again with just one change and compare." }
+      : g.phase === "choice"
+        ? { id: "choice", title: "the big decision", text: "Every option helps someone and costs someone else. Read what each one does to the cities, the ice and your crew. There is no perfect answer, only your answer." }
+        : g.phase === "endgame"
+          ? { id: "endgame", title: "the last hours", text: "Your decision is made. Now spend the hours you have left as well as you can." }
+          : intro && !g.surveyed
+            ? { id: "welcome", title: "the station", text: "We're docked at Lantern 17. These are the five jobs here, and you can do them in any order. Press Start and I'll show you each one as you go." }
+            : { id: `guide-${active}-${co.title}`, title: co.title.toLowerCase(), text: `${co.text}${pick && pick !== co.step ? " You're on a different step: that's fine, I'll wait." : ""}`, target: ".sq-stage" };
 
   return (
     <div className="sq">
@@ -383,6 +395,7 @@ export default function StationQuest() {
           </>
         )}
       </main>
+      {!walking && tip && <Lumen tip={tip} />}
       <div className={`sq-caption${caption ? " on" : ""}`} aria-live="polite">
         {caption && (
           <p>
