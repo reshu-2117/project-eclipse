@@ -14,7 +14,8 @@ import { EVENTS, ROUTES, dvLeft, hasSensor, isEclipse, mirrorOutputPct, options 
 import type { Action, Delta, GameState, LedgerEntry } from "@/lib/game";
 import { ARRIVE, DISTRESS, FLY_ALERT, FLY_APPROACH, FLY_BRAKE, FLY_START, type VoiceLine } from "@/lib/game/data/story";
 import { AIMS, FlightSim, HARD, SOFT, WARPS, type Aim, type FlightEvent, type FlightSnapshot } from "@/lib/flight/sim";
-import { THRUST } from "@/lib/flight/ship";
+import { RCS, THRUST } from "@/lib/flight/ship";
+import { DOCK_DEFAULT, DOCK_LEVELS, approachWarp, assistAxis, stepLevel, type DockLevel } from "@/lib/flight/dock";
 import { norm } from "@/lib/flight/kepler";
 import CardArt from "../CardArt";
 import type { Sound } from "../audio";
@@ -52,6 +53,8 @@ interface Hud {
   mode: FlightSim["mode"];
   warp: number;
   maxWarp: number;
+  /** the docking time-warp the player picked (the real warp is held down by the distance) */
+  dockLevel: DockLevel;
   available: number;
   spent: number;
   hull: number;
@@ -178,7 +181,7 @@ function flightTip(h: Hud, overlay: Overlay): Tip | null {
     const limit = speedLimit(d.range);
     if (d.closing > limit * 1.2) return { id: "dock-fast", title: "docking", text: "Too fast! Tap Slow down, or we will bump the station.", target: ".fd-pad .back", tone: "warn" };
     if (d.closing >= 0.02 && d.closing < limit * 0.3 && d.range > 20)
-      return { id: "dock-slow", title: "docking", text: "We're crawling. Hold Closer a moment longer to pick up speed. I'll fast-forward the long drift and slow time down near the ring.", target: ".fd-pad .fwd" };
+      return { id: "dock-slow", title: "docking", text: "We're crawling. Hold Closer a moment longer to pick up speed. Time speeds up while we close in and slows down near the ring. The Time buttons set how fast.", target: ".fd-pad .fwd" };
     if (d.closing < 0.02 && d.range > 2) return { id: "dock-go", title: "last step", text: h.guide ? "Last step: docking. I keep us lined up with the ring; you control the speed. Tap Closer to start moving in." : "Line the ring up on the cross, then tap Forward to move in.", target: h.guide ? ".fd-pad .fwd" : ".fd-reticle" };
     return { id: "dock-ok", title: "docking", text: `Good speed. Keep the speed bar green and let us drift in. We touch the ring at under ${SOFT.speed} m/s for a soft dock.`, target: ".fd-speed" };
   }
@@ -326,6 +329,8 @@ export default function FlightDeck({
   const keys = useRef(new Set<string>());
   /** The one-button pilot (Guide on): skip to the next burn, fire it, stop it; dodge in one tap. */
   const pilot = useRef({ armed: false, auto: false, dodging: 0 });
+  /** The docking time-warp: the speed the player picked, and whether time may run fast right now. */
+  const dock = useRef<{ level: DockLevel; active: boolean }>({ level: DOCK_DEFAULT, active: false });
 
   useEffect(() => {
     gameRef.current = game;
@@ -558,24 +563,30 @@ export default function FlightDeck({
       last = now;
       const g = gameRef.current;
       // controls from held keys (approach)
+      if (sim.mode !== "approach") dock.current.active = false;
       if (sim.mode === "approach") {
         const k = keys.current;
         const p = padRef.current;
         const ax = (k.has("KeyW") ? 1 : 0) - (k.has("KeyS") ? 1 : 0) + p[0];
         let ay = (k.has("KeyR") || k.has("ArrowUp") ? 1 : 0) - (k.has("KeyF") || k.has("ArrowDown") ? 1 : 0) + p[1];
         let az = (k.has("KeyA") || k.has("ArrowLeft") ? 1 : 0) - (k.has("KeyD") || k.has("ArrowRight") ? 1 : 0) + p[2];
+        const d = sim.dockData();
+        // the docking time-warp: the speed the player picked, held down by the distance to the ring, and only
+        // while closing in or lining up (a ship sitting still runs in real time, so waiting costs no mission hours)
+        if (overlayRef.current === null) {
+          const w = approachWarp(dock.current.level, d, dock.current.active);
+          dock.current.active = w.active;
+          if (sim.warp !== w.warp) sim.setWarp(w.warp);
+        }
         if (sim.guide) {
-          // docking assist: the computer keeps you on the centreline; you only choose the speed
-          const d = sim.dockData();
+          // docking assist: the computer keeps you on the centreline; you only choose the speed. It asks for exactly
+          // the speed change one frame can deliver, so it never chatters, however fast time is running.
           const k2 = d.range < 60 ? 0.08 : 0.03;
-          const band = d.range < 60 ? 0.008 : 0.03;
           const wantUp = Math.max(-0.25, Math.min(0.25, -k2 * d.up));
           const wantSide = Math.max(-0.25, Math.min(0.25, -k2 * d.side));
-          if (ay === 0 && Math.abs(wantUp - d.vUp) > band) ay = Math.sign(wantUp - d.vUp);
-          if (az === 0 && Math.abs(wantSide - d.vSide) > band) az = Math.sign(wantSide - d.vSide);
-          // and it fast-forwards the long, boring drift, back to real time for the last 80 m
-          const want = d.range > 400 && d.closing > 0.3 ? 10 : d.range > 80 && d.closing > 0.1 ? 5 : 1;
-          if (sim.warp !== want && WARPS.includes(want)) sim.setWarp(want);
+          const accel = RCS.newtons / sim.massKg;
+          if (ay === 0) ay = assistAxis(wantUp, d.vUp, accel, sim.warp, dt);
+          if (az === 0) az = assistAxis(wantSide, d.vSide, accel, sim.warp, dt);
         }
         sim.rcs = [Math.max(-1, Math.min(1, ax)), Math.max(-1, Math.min(1, ay)), Math.max(-1, Math.min(1, az))];
       } else if (sim.mode === "cruise" && sim.guide && overlayRef.current === null) {
@@ -651,6 +662,7 @@ export default function FlightDeck({
           mode: sim.mode,
           warp: sim.warp,
           maxWarp: sim.maxWarp(),
+          dockLevel: dock.current.level,
           available: sim.available,
           spent: sim.spent,
           hull: Math.max(0, g.hull - sim.hullPending),
@@ -776,6 +788,16 @@ export default function FlightDeck({
     sim.setWarp(WARPS[WARPS.length - 1]);
     sound.click();
   }, [sound]);
+  /** Pick how fast time runs while docking. The loop applies it every frame, held down by the distance. */
+  const setDockLevel = useCallback(
+    (level: DockLevel) => {
+      if (dock.current.level === level) return;
+      dock.current.level = level;
+      setHud((h) => (h ? { ...h, dockLevel: level } : h));
+      sound.tick();
+    },
+    [sound],
+  );
   const setView = useCallback((v: View) => {
     const scene = sceneRef.current;
     setViewState(v);
@@ -832,10 +854,16 @@ export default function FlightDeck({
       }
       const aimKeys: Record<string, Aim> = { Digit1: "computer", Digit2: "pro", Digit3: "retro", Digit4: "radOut", Digit5: "radIn", Digit6: "nrm", Digit7: "anti" };
       if (aimKeys[e.code]) setAim(aimKeys[e.code]);
-      else if (e.code === "Period") setWarp(1);
-      else if (e.code === "Comma") setWarp(-1);
-      else if (e.code === "Slash") skipAhead();
-      else if (e.code === "KeyM") setView(view === "map" ? "chase" : "map");
+      else if (e.code === "Period") {
+        if (sim.mode === "approach") setDockLevel(stepLevel(dock.current.level, 1));
+        else setWarp(1);
+      } else if (e.code === "Comma") {
+        if (sim.mode === "approach") setDockLevel(stepLevel(dock.current.level, -1));
+        else setWarp(-1);
+      } else if (e.code === "Slash") {
+        if (sim.mode === "approach") setDockLevel("max");
+        else skipAhead();
+      } else if (e.code === "KeyM") setView(view === "map" ? "chase" : "map");
       else if (e.code === "KeyC" && sim.mode === "approach") setView(view === "cockpit" ? "chase" : "cockpit");
       else if (e.code === "KeyG") toggleGuide();
     };
@@ -855,7 +883,7 @@ export default function FlightDeck({
       window.removeEventListener("keyup", up);
       window.removeEventListener("blur", blur);
     };
-  }, [burnDown, burnUp, mainButton, setAim, setWarp, skipAhead, setView, toggleGuide, view]);
+  }, [burnDown, burnUp, mainButton, setAim, setDockLevel, setWarp, skipAhead, setView, toggleGuide, view]);
 
   // camera drag and zoom
   useEffect(() => {
@@ -1078,7 +1106,7 @@ export default function FlightDeck({
               <span>Hull</span>
               <b className={h.hull < 60 ? "low" : ""}>{h.hull}</b>
             </div>
-            {!h.guide && (
+            {!h.guide && h.mode !== "approach" && (
             <div className="fd-warp" role="group" aria-label="Time-warp" data-explain="Time-warp: makes time run faster while you coast. The big button does this for you in Guide mode.">
               <button type="button" onClick={() => setWarp(-1)} aria-label="Slower time-warp" disabled={h.warp <= 1}>
                 −
@@ -1198,7 +1226,7 @@ export default function FlightDeck({
           )}
 
           {h.mode === "approach" && h.dock && (
-            <ApproachPanel h={h} setPad={setPad} view={view} setView={setView} />
+            <ApproachPanel h={h} setPad={setPad} view={view} setView={setView} onLevel={setDockLevel} />
           )}
 
           {/* aim and guide */}
@@ -1473,16 +1501,38 @@ function DockSummary({ game, info }: { game: GameState; info: { speed: number; e
   );
 }
 
+/** How fast time runs while docking. The distance still caps it, so the last 15 m are always real time. */
+function DockSpeed({ level, warp, onLevel }: { level: DockLevel; warp: number; onLevel: (l: DockLevel) => void }) {
+  return (
+    <div
+      className="fd-dockspeed"
+      data-explain="How fast time runs while you dock. Time speeds up while you close in and always slows down near the ring, so a tap stays safe. The keys , and . change it."
+    >
+      <span id="fd-dockspeed-label">Time</span>
+      <div role="group" aria-labelledby="fd-dockspeed-label">
+        {DOCK_LEVELS.map((v) => (
+          <button key={String(v)} type="button" aria-pressed={level === v} onClick={() => onLevel(v)} title={v === "max" ? "As fast as the distance allows (/)" : `Up to ${v}× (, and .)`}>
+            {v === "max" ? "Max" : `${v}×`}
+          </button>
+        ))}
+      </div>
+      <output aria-live="off">{warp > 1 ? `running ${warp}×` : "real time"}</output>
+    </div>
+  );
+}
+
 function ApproachPanel({
   h,
   setPad,
   view,
   setView,
+  onLevel,
 }: {
   h: Hud;
   setPad: (axis: 0 | 1 | 2, v: number) => void;
   view: View;
   setView: (v: View) => void;
+  onLevel: (l: DockLevel) => void;
 }) {
   const d = h.dock!;
   const limit = speedLimit(d.range);
@@ -1521,9 +1571,12 @@ function ApproachPanel({
                 : "Good speed";
     return (
       <section className="fd-panel fd-approach guided" aria-label="Docking">
-        <p className="fd-eyebrow">
-          Docking <b>{"//"}</b> {d.range > 1000 ? `${r1(d.range / 1000)} km` : `${est ? "~" : ""}${r0(range)} m`} to the ring
-        </p>
+        <div className="fd-dock-head">
+          <p className="fd-eyebrow">
+            Docking <b>{"//"}</b> {d.range > 1000 ? `${r1(d.range / 1000)} km` : `${est ? "~" : ""}${r0(range)} m`} to the ring
+          </p>
+          <DockSpeed level={h.dockLevel} warp={h.warp} onLevel={onLevel} />
+        </div>
         <div className={`fd-speed ${closingTone}`} data-explain="How fast you are moving towards the station. Keep it in the green part. The closer you get, the slower green becomes, so you touch the ring gently.">
           <div className="fd-speed-top">
             <b>{word}</b>
@@ -1560,9 +1613,12 @@ function ApproachPanel({
 
   return (
     <section className="fd-panel fd-approach" aria-label="Docking">
-      <p className="fd-eyebrow">
-        Thrusters <b>{"//"}</b> {est ? "no lidar: judging by eye" : "lidar locked"}
-      </p>
+      <div className="fd-dock-head">
+        <p className="fd-eyebrow">
+          Thrusters <b>{"//"}</b> {est ? "no lidar: judging by eye" : "lidar locked"}
+        </p>
+        <DockSpeed level={h.dockLevel} warp={h.warp} onLevel={onLevel} />
+      </div>
       <div className="fd-dock-nums">
         <div className="fd-num">
           <span>To the ring</span>

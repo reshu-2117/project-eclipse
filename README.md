@@ -59,7 +59,7 @@ Design decisions made in Chunk 0 (where the handbook left a gap):
 4. **You send one packet, whenever you choose.** You can transmit as soon as you're at the station. Sending early helps the network turn sooner, but the network judges the evidence you had at that moment.
 5. **City reserves drain by the light they're missing,** not only when Lantern 17 is fully dark. Fixing the drift slows the drain. Beaming during the Eclipse costs the cities nothing.
 
-Tests: `npm test` (94 tests). They re-derive every handbook number, check the rules, play scripted crews to prove that all 8 endings can be reached, fly every route through the real flight physics with a robot pilot, and check the piloted engine actions.
+Tests: `npm test` (137 tests). They re-derive every handbook number, check the rules, play scripted crews to prove that all 8 endings can be reached, fly every route through the real flight physics with a robot pilot, and check the piloted engine actions.
 
 **The mission:** `/mission` is playable end to end: build a ship at the Wick, choose a route, **fly it yourself** on the flight deck (real burns, an ice fragment, three event cards, docking on thrusters), then continue on the Station Mission page (`/station`): look around, investigate, fix problems, prove it, tell the world, make the big decision, hold or leave, and read the debrief. The Station Mission is written in plain words for teenagers, with a coach that tells you the next move.
 
@@ -75,7 +75,8 @@ The first player-facing stage. Players build a ship in four bays (hull, parts, s
 
 - **Every click goes through the engine** (`app/mission/Mission.tsx` calls `step()`), so a refusal shows the engine's own reason, and the numbers on screen (Δv, mass, energy, bay, budget, route fit) are the engine's.
 - **Blueprint** (`app/mission/Blueprint.tsx`): one SVG sheet; each hull has its own outline and anchor points, and every part has a drawing that slides in and locks.
-- **Starter ships** (`lib/game/presets.ts`): three one-click builds, each proven launchable by tests.
+- **Starter packages** (`lib/game/presets.ts`): five one-click ships for a first-timer, shown at the top of the hangar with a plain "pick this if" line and facts read off the loadout. Each has no red flags, a thermal camera, a measuring sensor and suits, and the tests prove each launches and wins for a careful scripted crew. Take one and go straight to the launch check.
+- **Docking time-warp** (`lib/flight/dock.ts`): 1×, 5×, 10× and Max while docking. The distance caps it (the last 15 m are always real time) and the thrusters are throttled above 2×, so a tap stays gentle. Max docks in about 105 s instead of about 5 minutes, always softly.
 - **Runs are saved** in `sessionStorage` as a seed plus the list of actions, so a refresh offers "Continue your mission".
 - **Sound and voice** have separate switches (`app/mission/audio.ts`); both remembered. Sound is made in the browser; the voice lines are recorded files in `public/audio`.
 - Respects reduced motion; works with the keyboard alone and at phone width.

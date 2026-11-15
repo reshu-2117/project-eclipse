@@ -18,7 +18,7 @@ function cell(dv: number, id: (typeof ROUTE_ORDER)[number]): { state: State; tex
   return { state: "ok", pct, text: `+${r0(dv - t.withMarginDv)} spare` };
 }
 
-/** The three starter ships, side by side, against all five routes. */
+/** The five starter packages, side by side, against all five routes. */
 export default function Ships() {
   const ships = PRESETS.map((p) => ({ p, st: loadoutStats(p.loadout) }));
   return (
@@ -31,7 +31,7 @@ export default function Ships() {
           No ship can do <em>everything.</em>
         </h2>
         <p>
-          The three starter ships, built by the same engine the hangar uses, against all five routes. Green is a route the ship can fly with margin, amber is a risk, red is a route it can&apos;t finish.
+          The five starter packages, built by the same engine the hangar uses, against all five routes. Green is a route the ship can fly with margin, amber is a risk, red is a route it can&apos;t finish.
         </p>
       </header>
 

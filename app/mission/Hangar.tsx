@@ -21,6 +21,7 @@ import {
   actionsToReach,
   lineItems,
   loadoutStats,
+  presetFacts,
   routeFit,
   sameShip,
 } from "@/lib/game";
@@ -32,7 +33,7 @@ import { useReducedMotion } from "./Opening";
 
 type Bay = "hull" | "parts" | "suits" | "review";
 const BAYS: { id: Bay; letter: string; name: string; sub: string }[] = [
-  { id: "hull", letter: "A", name: "Hull bay", sub: "Courier · Tender · Hauler" },
+  { id: "hull", letter: "A", name: "Hull bay", sub: "Packages · Courier · Tender · Hauler" },
   { id: "parts", letter: "B", name: "Part slots", sub: "Six slots and two add-ons" },
   { id: "suits", letter: "C", name: "Suit bay", sub: "Soft or hard, tether or jetpack" },
   { id: "review", letter: "D", name: "Readiness review", sub: "Red flags before launch" },
@@ -293,6 +294,8 @@ export default function Hangar({
   const warns = stats.flags.filter((f) => f.level === "warn");
   const dvShown = useRolling(stats.dv, reduce);
   const hull = HULLS[l.hull];
+  // the package the ship currently matches, if any: it stops matching the moment you change a part
+  const loaded = PRESETS.find((p) => sameShip(l, p.loadout));
 
   const launch = () => {
     if (blocks.length) return;
@@ -319,15 +322,17 @@ export default function Hangar({
       ? { id: `block-${blocks[0].id}`, title: "can't launch yet", text: `${blocks[0].text}`, target: ".hg-gantry", tone: "warn" }
       : reachable === 0
         ? { id: "noreach", title: "fuel", text: "Your ship can't reach Lantern 17 yet. The big number on the right is your fuel. Add fuel, or swap a heavy part for a lighter one, until a route turns green.", target: ".hg-dv", tone: "warn" }
-        : bay === "hull"
-          ? { id: "hull", title: "step 1 of 4", text: "Pick the size of your ship. A bigger ship carries more, but it is heavier, so the same fuel takes you less far. Tender is a safe first pick.", target: ".hg-left" }
-          : bay === "parts"
-            ? { id: "parts", title: "step 2 of 4", text: "Pick one part from each row. Each card says what it is great for and what it is bad at. Keep an eye on the big number on the right: that is how far your fuel takes you.", target: ".hg-dv" }
-            : bay === "suits"
-              ? { id: "suits", title: "step 3 of 4", text: "Suits are for going outside at Lantern 17. Not sure? Leave the defaults and move on.", target: ".hg-nav" }
-              : warns.length > 0
-                ? { id: `warn-${warns.length}`, title: "step 4 of 4", text: `Your ship can fly, but I see ${warns.length} risk${warns.length === 1 ? "" : "s"} listed here. Fix them, or launch anyway and live with them.`, target: ".hg-gantry" }
-                : { id: "ready", title: "step 4 of 4", text: "Everything checks out. Press Launch.", target: ".hg-gantry .btn-lantern", tone: "good" };
+        : bay === "hull" && loaded
+          ? { id: `pkg-${loaded.id}`, title: "package loaded", text: `${loaded.name} is built and cleared for launch. Press “Go to the launch check” to take off, or change any part first.`, target: ".hg-loaded", tone: "good" }
+          : bay === "hull"
+            ? { id: "hull", title: "step 1 of 4", text: "New here? Take a package at the top and I will take you straight to launch. Or build your own: pick the size of your ship first. A bigger ship carries more, but it is heavier, so the same fuel takes you less far.", target: ".hg-packages" }
+            : bay === "parts"
+              ? { id: "parts", title: "step 2 of 4", text: "Pick one part from each row. Each card says what it is great for and what it is bad at. Keep an eye on the big number on the right: that is how far your fuel takes you.", target: ".hg-dv" }
+              : bay === "suits"
+                ? { id: "suits", title: "step 3 of 4", text: "Suits are for going outside at Lantern 17. Not sure? Leave the defaults and move on.", target: ".hg-nav" }
+                : warns.length > 0
+                  ? { id: `warn-${warns.length}`, title: "step 4 of 4", text: `Your ship can fly, but I see ${warns.length} risk${warns.length === 1 ? "" : "s"} listed here. Fix them, or launch anyway and live with them.`, target: ".hg-gantry" }
+                  : { id: "ready", title: "step 4 of 4", text: "Everything checks out. Press Launch.", target: ".hg-gantry .btn-lantern", tone: "good" };
 
   // the gauge: 0 to 3,000 m/s, with a tick for what each route needs
   const GMAX = 3000;
@@ -364,6 +369,66 @@ export default function Hangar({
         <div className="hg-left">
           {bay === "hull" && (
             <>
+              <section className="hg-group hg-packages" data-explain="Five ready-built ships. Pick one and you can go straight to launch. Every one can see heat and measure the ice, which is what gets you believed at the end.">
+                <header>
+                  <h3>New here? Take a package</h3>
+                  <p>Five ready-built ships. Pick one and go straight to launch. Every one can see heat and measure the ice, which is what gets you believed at the end.</p>
+                </header>
+                <div className="hg-pkgwrap">
+                  <div className="hg-opts">
+                    {PRESETS.map((p) => {
+                      const st = loadoutStats(p.loadout);
+                      const f = presetFacts(p.loadout);
+                      const on = sameShip(l, p.loadout);
+                      return (
+                        <div className="hg-optwrap" key={p.id}>
+                          <button type="button" className={`hg-opt hg-pkg${on ? " on" : ""}`} aria-pressed={on} onClick={() => applyPreset(p.loadout)}>
+                            <span className="hg-opt-top">
+                              <b>{p.name}</b>
+                              <i className="hg-tagline">{p.tagline}</i>
+                            </span>
+                            {p.recommended && <span className="hg-star">★ Best first pick</span>}
+                            <span className="hg-pickif">
+                              <b>Pick this if</b> {p.pickIf}
+                            </span>
+                            <span className="hg-chips">
+                              <i className={`hg-chip ${f.seesHeat ? "ok" : "no"}`}>{f.seesHeat ? "Sees heat" : "Can't see heat"}</i>
+                              <i className={`hg-chip ${f.testBandPct !== null ? "ok" : "no"}`}>{f.testBandPct !== null ? `Measures the ice ±${f.testBandPct}%` : "Can't measure the ice"}</i>
+                              <i className={`hg-chip ${f.canRepairMirror ? "ok" : "no"}`}>{f.canRepairMirror ? "Can repair the mirror" : "Can't repair the mirror"}</i>
+                              <i className="hg-chip">Flies {f.routesInReach} of 5 routes</i>
+                            </span>
+                            <span className="hg-opt-nums">
+                              <span><small>Δv</small> {r0(st.dv)} m/s</span>
+                              <span><small>CR</small> {st.credits}</span>
+                            </span>
+                            <span className="hg-gain">{p.blurb}</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {loaded && (
+                    <div className="hg-loaded" role="status">
+                      <p>
+                        <b>{loaded.name}</b> is loaded. {presetFacts(loaded.loadout).cleanLaunch ? "Nothing is flagged." : "Check the launch review."}
+                      </p>
+                      <span className="hg-loaded-btns">
+                        <button type="button" className="btn btn-lantern" onClick={() => goBay("review")}>
+                          Go to the launch check <span aria-hidden="true">→</span>
+                        </button>
+                        <button type="button" className="btn btn-ghost" onClick={() => goBay("parts")}>
+                          Change parts
+                        </button>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <p className="hg-or">
+                <span>or build your own ship</span>
+              </p>
+
               <section className="hg-group">
                 <header>
                   <h3>Choose a hull</h3>
@@ -410,38 +475,6 @@ export default function Hangar({
                 </p>
               </section>
 
-              <section className="hg-group">
-                <header>
-                  <h3>Or start from a ready-made ship</h3>
-                  <p>One click builds the whole ship. You can change anything after.</p>
-                </header>
-                <div className="hg-opts">
-                  {PRESETS.map((p) => {
-                    const st = loadoutStats(p.loadout);
-                    return (
-                      <div className="hg-optwrap" key={p.id}>
-                        <button
-                          type="button"
-                          className={`hg-opt${sameShip(l, p.loadout) ? " on" : ""}`}
-                          aria-pressed={sameShip(l, p.loadout)}
-                          onClick={() => applyPreset(p.loadout)}
-                        >
-                          <span className="hg-opt-top">
-                            <b>{p.name}</b>
-                            <i className="hg-tagline">{p.tagline}</i>
-                          </span>
-                          <span className="hg-opt-nums">
-                            <span><small>Δv</small> {r0(st.dv)} m/s</span>
-                            <span><small>CR</small> {st.credits}</span>
-                            <span><small>TEST</small> {st.bestBandPct === null ? "none" : `±${st.bestBandPct}%`}</span>
-                          </span>
-                          <span className="hg-gain">{p.blurb}</span>
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
             </>
           )}
 

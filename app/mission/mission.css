@@ -469,6 +469,123 @@
   font-size: 15px;
   color: var(--amber-soft);
 }
+/* starter packages: pick one, go straight to launch */
+.hg-packages {
+  border-color: rgba(255, 181, 71, 0.28);
+  background: linear-gradient(180deg, rgba(255, 181, 71, 0.06), transparent 30%), rgba(11, 18, 32, 0.6);
+}
+.hg-pkgwrap {
+  display: block;
+}
+.hg-pkg {
+  gap: 7px;
+}
+.hg-star {
+  justify-self: start;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 181, 71, 0.5);
+  background: rgba(255, 181, 71, 0.1);
+}
+.hg-pickif {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--frost);
+}
+.hg-pickif b {
+  margin-right: 4px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber-soft);
+}
+.hg-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.hg-chip {
+  font-style: normal;
+  font-size: 11.5px;
+  line-height: 1;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(220, 230, 240, 0.16);
+  color: var(--body);
+  white-space: nowrap;
+}
+.hg-chip.ok {
+  color: #8fe3b0;
+  border-color: rgba(143, 227, 176, 0.4);
+  background: rgba(143, 227, 176, 0.07);
+}
+.hg-chip.no {
+  color: #d99a86;
+  border-color: rgba(217, 154, 134, 0.4);
+  background: rgba(217, 154, 134, 0.06);
+}
+.hg-loaded {
+  position: sticky;
+  /* clears the Director's caption strip, which sits 22px up and is about 80px tall */
+  bottom: 108px;
+  z-index: 5;
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(143, 227, 176, 0.45);
+  background: #081414;
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.8);
+  animation: hg-in 0.25s ease;
+}
+.hg-loaded p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--body);
+}
+.hg-loaded p b {
+  color: #8fe3b0;
+  font-weight: 500;
+}
+.hg-loaded-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.hg-loaded-btns .btn {
+  min-height: 42px;
+  padding: 0 18px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+.hg-or {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.hg-or::before,
+.hg-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(220, 230, 240, 0.12);
+}
 .hg-opt-nums {
   display: flex;
   flex-wrap: wrap;

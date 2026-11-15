@@ -595,6 +595,64 @@
   gap: 10px;
   border-color: rgba(125, 255, 176, 0.22);
 }
+.fd-dock-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+.fd-dock-head .fd-eyebrow {
+  margin: 0;
+}
+/* how fast time runs while docking: 1× 5× 10× Max */
+.fd-dockspeed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fd-dockspeed > span {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.fd-dockspeed > div {
+  display: flex;
+  gap: 4px;
+}
+.fd-dockspeed button {
+  min-width: 38px;
+  padding: 6px 9px;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--frost);
+  border: 1px solid rgba(220, 230, 240, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.fd-dockspeed button:hover {
+  border-color: rgba(255, 181, 71, 0.45);
+}
+.fd-dockspeed button[aria-pressed="true"] {
+  border-color: rgba(255, 181, 71, 0.65);
+  background: rgba(255, 181, 71, 0.1);
+  color: var(--amber);
+}
+.fd-dockspeed output {
+  min-width: 74px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ice);
+}
 .fd-dock-nums {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

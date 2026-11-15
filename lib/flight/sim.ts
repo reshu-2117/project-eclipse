@@ -35,6 +35,7 @@ import {
   type V3,
 } from "./kepler";
 import { GAP_M, approachAt, buildScenario, l17At, nodeDv, replan, type PlanNode, type Scenario } from "./plan";
+import { approachCap, rcsThrottle } from "./dock";
 
 export type Aim = "computer" | "pro" | "retro" | "radOut" | "radIn" | "nrm" | "anti";
 export const AIMS: { id: Aim; label: string; key: string }[] = [
@@ -540,7 +541,7 @@ export class FlightSim {
   maxWarp(): number {
     if (this.mode === "docked" || this.mode === "lost") return 1;
     if (this.thrusting) return this.accel > 1 ? 10 : 50;
-    if (this.mode === "approach") return 10;
+    if (this.mode === "approach") return approachCap(this.dockData().range);
     if (this.conj.state === "alert" && this.conj.tca - this.t < 120) return 5;
     return WARPS[WARPS.length - 1];
   }
@@ -670,7 +671,8 @@ export class FlightSim {
         if (rcsCmd) {
           const f = lvlhOf(this.l17);
           const cmd = fromLocal(f, this.rcs);
-          const a = RCS.newtons / this.massKg;
+          // above 5× the thrusters are throttled, so a tap nudges the ship the same per real second at any warp
+          const a = (RCS.newtons / this.massKg) * rcsThrottle(this.warp);
           acc = addScaled(acc, unit(cmd), a * Math.min(1, norm(this.rcs)));
         }
         const aMag = norm(acc);
