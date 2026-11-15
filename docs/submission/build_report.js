@@ -4,7 +4,6 @@ const {
   Header, ImageRun, ExternalHyperlink, LevelFormat, AlignmentType, ShadingType,
 } = require("docx");
 
-const SCRATCH = "/tmp/claude-0/-home-user-project-eclipse/c8e57803-a42d-5859-ac82-97e17e75cb4b/scratchpad";
 const FONT = "Arial";
 const SZ = 21;
 
@@ -69,6 +68,8 @@ const box = (children) =>
   });
 
 // ---------- content ----------
+// The demo deck as a public PDF in the repository (GitHub is on NASA's list of hosts; no login needed)
+const DEMO_URL = "https://github.com/reshu-2117/project-eclipse/blob/main/docs/submission/demo-deck/Project_Eclipse_Demo_Deck.pdf";
 const HLS = [
   para([b("Project Name :")], { spacing: { after: 40 } }),
   para([b("Project Eclipse:"), t(" A Space Mission Design Game Where Every Choice Costs Something")]),
@@ -93,7 +94,7 @@ const HLS = [
   para([
     b("What we built: "),
     t(
-      "a complete, tested mission engine (hulls and parts, five routes, eight event cards, Lantern 17’s six zones, clues and competing explanations, the test beam, the big choice, the broadcast and eight endings); the Mission Lab, a live proof page that runs that engine in the browser (ten handbook numbers re-derived, three ships against five routes, nine scripted crews with interactive charts, all eight endings, and the game’s data laid open); the playable mission: a narrated opening and a briefing, then the Wick, where the player builds a ship from three hulls and 24 parts on a live blueprint and passes a readiness review, then a route screen and a 3D flight to Lantern 17 that the player pilots themselves under real two-body gravity (the flight computer plots every burn from the physics, eight animated event cards interrupt the journey, a tracked ice fragment must be dodged, and the last kilometre is flown on thrusters to a soft capture), and work at the station itself, outside in first person with a thermal visor (a survey, five ways to inspect each of six zones, repairs, an evidence board with six clues, a controlled test shown in 3D, the network broadcast, the big choice, the ending, and a debrief in plain words with Replay with one change); a guided Station Mission page for new players, with a coach that suggests the next move; and the front end, with a WebGL planet lit only by its 24 Lanterns, the same planet and Lantern network shown on the flight map and the Lab in the phase the mission is in (failing, in the Eclipse, dark or restored), a 3D orbit simulation of Lantern 17 and a Lantern network board.",
+      "a complete, tested mission engine (hulls and parts, five routes, eight event cards, Lantern 17’s six zones, clues and competing explanations, the test beam, the big choice, the broadcast and eight endings); the Mission Lab, a live proof page that runs that engine in the browser (ten handbook numbers re-derived, five starter packages against five routes, nine scripted crews with interactive charts, all eight endings, and the game’s data laid open); the playable mission: a narrated opening and a briefing, then the Wick, where the player builds a ship from three hulls and 24 parts on a live blueprint, or takes one of five ready-made beginner packages, and passes a readiness review, then a route screen and a 3D flight to Lantern 17 that the player pilots themselves under real two-body gravity (the flight computer plots every burn from the physics, eight animated event cards interrupt the journey, a tracked ice fragment must be dodged, and the last kilometre is flown on thrusters to a soft capture, with a Time control (1×, 5×, 10× or Max) that cuts that long approach from about five minutes to about a minute and a half without risking a hard dock), and work at the station itself, outside in first person with a thermal visor (a survey, five ways to inspect each of six zones, repairs, an evidence board with six clues, a controlled test shown in 3D, the network broadcast, the big choice, the ending, and a debrief in plain words with Replay with one change); a guided Station Mission page for new players, with a coach that suggests the next move; and the front end, with a WebGL planet lit only by its 24 Lanterns, the same planet and Lantern network shown on the flight map and the Lab in the phase the mission is in (failing, in the Eclipse, dark or restored), a 3D orbit simulation of Lantern 17 and a Lantern network board.",
     ),
   ]),
   para([
@@ -106,11 +107,12 @@ const HLS = [
 
 const LINKS = [
   para([
-    b("Demo Link: "),
-    link("https://project-eclipse-new.vercel.app/lab"),
-    t(" (live and interactive: every handbook number re-derived in your browser, three ships tested against five routes, and nine scripted crews flying whole missions to every ending, with a scrubbable chart of each)."),
+    b("Demo Link (7-slide deck): "),
+    link(DEMO_URL),
+    t(" (seven slides: the team and the challenge, the mission and the hangar, flying under real gravity, the ice alert and docking, the station walk, the NASA figures used, and the debrief with links. Public, no login needed)."),
   ]),
-  para([b("Project Link: "), link("https://project-eclipse-new.vercel.app")]),
+  para([b("Project Link (the game, live): "), link("https://project-eclipse-new.vercel.app")]),
+  para([b("Mission Lab (live proof page): "), link("https://project-eclipse-new.vercel.app/lab"), t(" (every handbook number re-derived in your browser, five starter packages tested against five routes, and nine scripted crews flying whole missions to every ending, with a scrubbable chart of each).")]),
   para([b("Play the whole mission (hangar, piloted flight, docking, station walk, debrief): "), link("https://project-eclipse-new.vercel.app/mission")]),
   para([b("The Station Mission (at Lantern 17, a guided page for new players): "), link("https://project-eclipse-new.vercel.app/station?demo=1")]),
   para([
@@ -131,7 +133,7 @@ const DETAILS = [
   bullet([b("Five meters run the whole game: "), t("Δv (speed budget), Energy, Time (two clocks), Evidence (0 to 100) and City light (four settlements’ reserves). Every action moves at least one of them.")]),
   bullet([b("The twist is earned, not given: "), t("the player gathers six clues, rules out two wrong explanations (“sensor error”, “something else hit it”), and only then unlocks the test that proves the real cause: Lantern 17’s cracked mirror focuses light well enough to push ice.")]),
   bullet([b("Eight endings: "), t("decided by what the player proved, what they packed and whether it arrived in time. Station, cities and crew are scored separately, because scientific success and operational success are not always the same thing.")]),
-  para([b("Current status: "), t("the game engine, the Mission Lab (our live demo), the front end and the whole playable mission at /mission are built and deployed. The game opens with a narrated five-scene opening and a briefing. In the hangar a player picks a hull and parts, watches Δv, mass, energy and budget change, passes a readiness review and launches with a spoken briefing from the Director. They choose a route (time against fuel), then fly it themselves on a 3D flight deck under real two-body gravity: they light every burn, the flight computer plots each one from the physics (the burns come out at the Handbook's 376, 27, 136, 1,282 and 1,252 m/s) and re-plans if they fly it badly, and an orbit view shows their path against the plan. On the way, three random event cards appear (eight exist) and a tracked ice fragment crosses their path with a collision warning modelled on NASA's ISS practice (time of closest approach, chance of a hit against the 1-in-10,000 line, a small dodge burn); damage follows real shield ballistic limits. The last kilometre is flown on thrusters through drifting ice to a soft capture at Lantern 17's docking port, as crews approach the ISS. At the station they go outside in first person, glide along the handrails to each of the six zones, look with their own eyes or a thermal visor (the burn scar on the cracked mirror segment shows only in thermal), inspect and repair there, and fire the controlled test, which plays out in 3D with the block pushed by light. A guided Station Mission page (/station), written in plain words with a coach that suggests the next move, covers the evidence board, the explanations, the report to the network and the big choice. The debrief explains the ending in plain words, shows the moments that mattered, what they could have done better and the real-world equivalents, and offers Replay with one change against a ghost of the last run. A seven-slide demo deck summarises the project.")], { spacing: { before: 80, after: 80 } }),
+  para([b("Current status: "), t("the game engine, the Mission Lab (a live proof page), the front end and the whole playable mission at /mission are built and deployed. The game opens with a narrated five-scene opening and a briefing. In the hangar a player picks a hull and parts (or takes one of five ready-made beginner packages, each showing what it can and cannot do: sees heat, measures the ice, repairs the mirror), watches Δv, mass, energy and budget change, passes a readiness review and launches with a spoken briefing from the Director. They choose a route (time against fuel), then fly it themselves on a 3D flight deck under real two-body gravity: they light every burn, the flight computer plots each one from the physics (the burns come out at the Handbook's 376, 27, 136, 1,282 and 1,252 m/s) and re-plans if they fly it badly, and an orbit view shows their path against the plan. On the way, three random event cards appear (eight exist) and a tracked ice fragment crosses their path with a collision warning modelled on NASA's ISS practice (time of closest approach, chance of a hit against the 1-in-10,000 line, a small dodge burn); damage follows real shield ballistic limits. The last kilometre is flown on thrusters through drifting ice, with a Time control (1×, 5×, 10× or Max) that speeds the approach up while the distance caps it, the last 15 metres always run in real time and the thrusters are throttled so a tap stays gentle: in our simulator that brings the approach from about five minutes to about a minute and a half, and every dock is soft. It ends in a soft capture at Lantern 17's docking port, as crews approach the ISS. At the station they go outside in first person, glide along the handrails to each of the six zones, look with their own eyes or a thermal visor (the burn scar on the cracked mirror segment shows only in thermal), inspect and repair there, and fire the controlled test, which plays out in 3D with the block pushed by light. A guided Station Mission page (/station), written in plain words with a coach that suggests the next move, covers the evidence board, the explanations, the report to the network and the big choice. The debrief explains the ending in plain words, shows the moments that mattered, what they could have done better and the real-world equivalents, and offers Replay with one change against a ghost of the last run. A seven-slide demo deck summarises the project.")], { spacing: { before: 80, after: 80 } }),
 
   label("How does it work?"),
   step([b("Story and rules as data. "), t("Hulls, parts, routes, event cards, zones, clues and endings are plain data tables. Each row says what it gives you and what it costs you, and is tagged real, game value or fiction.")]),
@@ -142,7 +144,7 @@ const DETAILS = [
   bullet([b("Power and time: "), t("life support and computers draw 3 kW; engine heaters, sensors and radios draw more; cryogenic fuel boils away about 2% every 6 hours; two clocks run (the ice arrives at hour 30, and the reactor shuts down at hour 20 if a hidden ammonia leak is not patched); and a six-hour Eclipse every 24 hours slows communications to a quarter.")], 1),
   bullet([b("Evidence and the test: "), t("a 10 kW beam for 60 seconds pushes a 482 kg ice block about 6 cm/s. How sure the player can be depends on their best sensor (camera ±60%, lidar ±15%, radar ±3%). Deflecting the 100 m station-killer grows with beam time squared, so one Lantern needs about 21 hours to move it 1.5 km. Arriving late costs the chance to save the station.")], 1),
   bullet([b("Communications: "), t("transfer time = packet size ÷ link speed. A 200 MB proof takes 1 h 44 min on a small radio and 2.7 minutes on a 10 Mbps dish.")], 1),
-  step([b("Verification. "), t("59 automated tests re-derive every physics number in our Game Systems Handbook from first principles, check the rules, and play nine scripted crews through full missions to prove that all eight endings can be reached. The live Mission Lab shows ten of ten handbook numbers matching the engine.")]),
+  step([b("Verification. "), t("137 automated tests re-derive every physics number in our Game Systems Handbook from first principles, check the rules, play nine scripted crews through full missions to prove that all eight endings can be reached, fly the live flight simulator to a soft docking on every route and at every docking speed (including with a slow-reacting pilot), and check that every starter package launches cleanly and can win. The live Mission Lab shows ten of ten handbook numbers matching the engine.")]),
   step([b("Front end. "), t("The planet is a WebGL shader lit only by its 24 Lanterns (inverse-square falloff, a specular glint on the ice, blue subsurface scatter). The Lanterns fly a Walker-delta constellation, the pattern Galileo navigation satellites use. The 3D orbital view of Lantern 17 follows 63 objects on analytic Kepler orbits and is checked so that no two paths ever come within their safety zones.")]),
 
   label("What benefits does it have?"),
@@ -229,7 +231,7 @@ const REFS = [
 ];
 
 // ---------- document ----------
-const logo = fs.readFileSync(SCRATCH + "/tpl/un2/word/media/image1.png");
+const logo = fs.readFileSync(__dirname + "/assets/nasa-space-apps-logo.png");
 
 const doc = new Document({
   creator: "Project Eclipse team",
@@ -295,7 +297,7 @@ const doc = new Document({
 });
 
 Packer.toBuffer(doc).then((buf) => {
-  const out = process.argv[2] || SCRATCH + "/Project_Eclipse_Components_of_Project_2026.docx";
+  const out = process.argv[2] || __dirname + "/Project_Eclipse_Components_of_Project_2026.docx";
   fs.writeFileSync(out, buf);
   console.log("wrote", out, buf.length);
 });
