@@ -250,8 +250,9 @@ export class FlightScene {
 
     // the Lantern network: three rings of eight, Lantern 17 in ours
     for (let i = 0; i < N_LANTERNS; i++) {
-      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), color: 0xffd09a, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, sizeAttenuation: false }));
-      s.scale.setScalar(0.022);
+      // each Lantern is a fusion lamp thousands of km away: a bright star with a camera's four-point flare
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: flareTexture(), color: 0xffcf8f, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, sizeAttenuation: false }));
+      s.scale.setScalar(0.05);
       s.renderOrder = 1;
       this.scene.add(s);
       this.lanterns.push(s);
@@ -391,7 +392,7 @@ export class FlightScene {
       const s = this.lanterns[i];
       s.position.copy(rel(p));
       const m = s.material as THREE.SpriteMaterial;
-      m.opacity = (i === 0 ? 0 : 0.9) * (eclipse ? 0.35 : 1);
+      m.opacity = (i === 0 ? 0 : 0.85 + 0.15 * Math.sin(this.time * 1.7 + i * 2.3)) * (eclipse ? 0.35 : 1);
     });
 
     // Lantern 17 and its flare
