@@ -32,5 +32,8 @@ export const REAL: Record<string, RealCard> = {
   rtg: { key: "rtg", label: "Your heat brick", real: "MMRTG", note: "Powers Curiosity and Perseverance. About $109 M to build and deploy." },
   jetpack: { key: "jetpack", label: "Your jetpack", real: "SAFER", note: "An emergency rescue jetpack, about 3 m/s in total." },
   beam: { key: "beam", label: "Your beam", real: "DART, without contact", note: "DART moved an asteroid by hitting it. You did it with light." },
+  hohmann: { key: "hohmann", label: "Your climb", real: "Hohmann transfer", note: "Two burns, half an orbit apart: how crews raise the ISS and how Dragon climbs to it." },
+  conjunction: { key: "conjunction", label: "Your ice alert", real: "ISS debris avoidance", note: "NASA moves the ISS when the chance of a hit passes 1 in 10,000, with a burn of about 0.5 m/s." },
+  vbar: { key: "vbar", label: "Your docking", real: "Dragon's V-bar approach", note: "Up the station's velocity vector to a soft capture at about 0.1 m/s." },
   ablation: { key: "ablation", label: "Your push", real: "Laser ablation", note: "Measured in the lab by Gibbings et al. (2013)." },
 };

@@ -2,7 +2,7 @@
 
 import "./quest.css";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { BELIEF, debrief } from "@/lib/game";
 import type { GameState, LedgerEntry } from "@/lib/game";
 import { r0, r1 } from "./shared";
@@ -22,7 +22,7 @@ function keyMoments(ledger: LedgerEntry[]): LedgerEntry[] {
 }
 
 /** The ending: what happened and why, in plain words, what could have gone better, and how to try again. */
-export default function Debrief({ game, onSame, onNew }: { game: GameState; onSame: () => void; onNew: () => void }) {
+export default function Debrief({ game, onNew, ghost, replay }: { game: GameState; onNew: () => void; ghost?: ReactNode; replay?: ReactNode }) {
   const d = useMemo(() => debrief(game), [game]);
   const [copied, setCopied] = useState(false);
   const o = d.outcome;
@@ -96,6 +96,8 @@ export default function Debrief({ game, onSame, onNew }: { game: GameState; onSa
         </ul>
       </section>
 
+      {ghost}
+
       <section aria-label="Key moments">
         <h2 className="sq-db-h">The moments that mattered</h2>
         <ol className="sq-db-moments">
@@ -143,11 +145,9 @@ export default function Debrief({ game, onSame, onNew }: { game: GameState; onSa
       <section className="sq-db-go" aria-label="Try again">
         <h2 className="sq-db-h">Try again</h2>
         <p className="sq-lede">The same ice and the same event cards come back if you replay this mission. Change one thing, like the route or your sensors, and see what happens.</p>
+        {replay}
         <div className="sq-actions row">
-          <button type="button" className="sq-btn big" onClick={onSame}>
-            Replay this exact mission <span aria-hidden="true">↺</span>
-          </button>
-          <button type="button" className="sq-btn ghost big" onClick={onNew}>
+          <button type="button" className="sq-btn big" onClick={onNew}>
             Start fresh with a new ship
           </button>
           <button type="button" className="sq-btn ghost big" onClick={copy}>

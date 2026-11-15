@@ -77,7 +77,7 @@ export default function Route({
     sound.burn(reduce ? 1 : 2.6);
     timer.current = window.setTimeout(
       () => {
-        const reason = act({ type: "route", id: sel });
+        const reason = act({ type: "route", id: sel, piloted: true });
         if (reason) {
           setBurning(false);
           setError(reason);

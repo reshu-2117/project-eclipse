@@ -76,9 +76,59 @@ export function betterChoices(s: GameState): string[] {
   return out;
 }
 
+/** For a piloted flight: what the ledger says about how you flew. */
+export function flightReport(s: GameState) {
+  if (!s.piloted) return null;
+  const dock = s.log.find((e) => e.title === "Soft capture" || e.title === "Hard dock");
+  const speed = dock ? Number(/Contact at ([\d.]+) m\/s/.exec(dock.text)?.[1] ?? NaN) : null;
+  const extra = dock?.delta?.dv !== undefined ? -dock.delta.dv : 0;
+  const ice = s.log.filter((e) => e.phase === "journey" && e.title.startsWith("Ice fragment"));
+  const iceHull = ice.reduce((k, e) => k + -(e.delta?.hull ?? 0), 0);
+  const pilotHull = s.log
+    .filter((e) => e.phase === "journey" && e.title === "Piloting")
+    .reduce((k, e) => k + -(e.delta?.hull ?? 0), 0);
+  return {
+    docked: !!dock,
+    soft: dock?.title === "Soft capture",
+    speed: speed !== null && Number.isFinite(speed) ? speed : null,
+    extraDv: extra,
+    iceHits: ice.length,
+    iceHull,
+    hazeHull: pilotHull,
+    dockHull: -(dock?.delta?.hull ?? 0),
+  };
+}
+
+function flightLessons(s: GameState): string[] {
+  const f = flightReport(s);
+  if (!f) return [];
+  const out: string[] = [];
+  if (f.docked && !f.soft && f.speed !== null)
+    out.push(`Hard dock at ${f.speed.toFixed(2)} m/s. Under 0.3 m/s and lined up on the ring is a soft capture: slow right down for the last 15 m.`);
+  if (f.extraDv > 30)
+    out.push(
+      `Your flying cost ${r0(f.extraDv)} m/s more than the route card. Light the engine when the countdown hits zero (half the burn falls before the node, half after), and let the computer cut it.`,
+    );
+  if (f.iceHits)
+    out.push("The ice fragment's path crossed yours and you stayed in it. A 0.6 m/s dodge, minutes ahead, costs almost nothing; NASA moves the ISS at 1 in 10,000.");
+  if (f.hazeHull > 0) out.push("Drifting ice hit you on the approach. Stop, let it pass, then go on: it's slow, and so are you.");
+  return out;
+}
+
+/** The actions to restart a run from: the hangar (change your ship) or the launch (same ship, fly again). */
+export function replayPoint<A extends { type: string }>(actions: A[], at: "hangar" | "route"): A[] {
+  const i = actions.findIndex((a) => a.type === (at === "hangar" ? "launch" : "route"));
+  return i < 0 ? actions.slice() : actions.slice(0, i);
+}
+
 export function realLifeCards(s: GameState): RealCard[] {
   const l = s.loadout;
   const keys: string[] = [l.engine, l.power];
+  if (s.piloted) {
+    if (s.route !== "fastOut" && s.route !== "fastBoth") keys.push("hohmann");
+    keys.push("conjunction");
+    if (s.log.some((e) => e.title === "Soft capture" || e.title === "Hard dock")) keys.push("vbar");
+  }
   if (l.shield !== "none") keys.push(l.shield);
   keys.push(...l.sensors);
   if (l.comms === "laser" || l.comms === "radio") keys.push(l.comms);
@@ -119,7 +169,8 @@ export function debrief(s: GameState) {
       hull: s.hull,
       fuelKgBurnedPerDvAtEnd: fuelForDeltaV(isp(s), shipDryKg(s), s.fuelKg, 1),
     },
-    better: betterChoices(s),
+    better: [...flightLessons(s), ...betterChoices(s)],
+    flight: flightReport(s),
     realLife: realLifeCards(s),
     ledger,
   };

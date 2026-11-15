@@ -32,3 +32,21 @@ export function actionsTo(seed: number, target: "station" | "choice"): { actions
   }
   return { actions, state: s };
 }
+
+/** A reviewer's shortcut to the flight deck: the Investigator ship, launched on the quick route, piloted. */
+export function actionsToFlight(seed: number): { actions: Action[]; state: GameState } {
+  const actions: Action[] = [];
+  let s = createGame(seed);
+  const go = (a: Action) => {
+    const r = step(s, a);
+    if (!r.ok) throw new Error(`Shortcut step rejected: ${r.reason}`);
+    actions.push(a);
+    s = r.state;
+  };
+  go({ type: "begin" });
+  const ship = PRESETS.find((p) => p.id === "investigator")!.loadout;
+  for (const a of actionsToReach(s, ship)) go(a);
+  go({ type: "launch" });
+  go({ type: "route", id: "quick", piloted: true });
+  return { actions, state: s };
+}
