@@ -171,7 +171,7 @@ const DETAILS = [
   bullet([b("Testing: "), t("Vitest, plus an independent orbit-collision check (npm run verify:orbits).")]),
   bullet([b("Fonts: "), t("Cormorant Garamond, Inter and JetBrains Mono, self-hosted with Fontsource.")]),
   bullet([b("Hosting and code: "), t("GitHub and Vercel (every push to the main branch deploys). No special hardware is needed to play.")]),
-  bullet([b("AI assistants: "), t("Claude (brainstorming and coding, through Claude Code), ChatGPT (research) and ElevenLabs (the Director’s, the narrator’s and the other crew’s voices). See Use of AI.")]),
+  bullet([b("AI assistants: "), t("Claude (helping to write the code, through Claude Code), ChatGPT (research) and ElevenLabs (the Director’s, the narrator’s and the other crew’s voices). See Use of AI.")]),
 ];
 
 const AI = [
@@ -179,13 +179,13 @@ const AI = [
   bullet([
     b("Claude (Anthropic): "),
     t(
-      "used for our brainstorming sessions and for the actual web coding, through Claude Code, an AI coding assistant. After the team’s initial project scaffold, the code in the GitHub repository (the front end, the game engine and its automated tests) was written and reviewed by Claude Code, working from the team’s design documents. Each of those commits carries a Co-Authored-By trailer naming it, and the repository README declares it. Claude Code also cross-checked our physics by re-deriving the orbital and propulsion numbers independently (the tests in lib/game/__tests__) and drafted this report from our documents.",
+      "used only to help write the code, through Claude Code, an AI coding assistant. It was not used to come up with the idea or the design: the idea for the game, the world, the story and every creative and design decision were made by the team, and are written in our own World-Building Dossier and Game Systems Handbook. After the team’s initial project scaffold, the code in the GitHub repository (the front end, the game engine and its automated tests) was written and reviewed by Claude Code, working from the team’s design documents. Each of those commits carries a Co-Authored-By trailer naming it, and the repository README declares it. Claude Code also cross-checked our physics by re-deriving the orbital and propulsion numbers independently (the tests in lib/game/__tests__) and drafted this report from our documents.",
     ),
   ]),
   bullet([b("ChatGPT (OpenAI): "), t("used for research into the real spacecraft, orbital and hazard figures behind the game’s numbers. We then checked the numbers that matter in code: our tests re-derive them from first principles.")]),
   bullet([b("Images and video: "), t("no generative AI images or video. Every visual is drawn in code (a WebGL shader, canvas and SVG) or is a procedural texture made by a script.")]),
   bullet([b("Audio: "), t("the Director’s voice lines and the other crew’s radio call are AI-generated with ElevenLabs text-to-speech, using three different voices. Each audio file says so in its metadata, the game’s start screen says so, and the README explains how they are made. All other sound (the ambient hum and the click and launch cues) is synthesised in the browser by our own code.")]),
-  bullet([b("Team documents: "), t("AI assisted the brainstorming (Claude) and the research (ChatGPT) behind our World-Building Dossier, Game Systems Handbook and pitch decks.")]),
+  bullet([b("Team documents: "), t("our World-Building Dossier, Game Systems Handbook and pitch decks are the team’s own work. The only AI help behind them was ChatGPT, used to look up the real figures behind the game’s numbers.")]),
 ];
 
 const NASA = [

@@ -127,14 +127,14 @@ In `docs/submission/` (copies; the originals were in a temporary folder):
 **Report facts to keep true**:
 - Demo Link in the report is `https://project-eclipse-new.vercel.app/lab` (no video exists). Project Link is the site. Source is the GitHub repo.
 - "Current status" says the opening/briefing is partly built and not playable. **Update it as chunks ship.**
-- "Use of AI": Claude (brainstorming, and coding through Claude Code; every commit after the first scaffold is Claude-authored with a Co-Authored-By trailer), ChatGPT (research; the user said "start GPT-M", which I **assumed means ChatGPT, unconfirmed**). Images/video: none AI. **Audio: the Director's hangar lines are ElevenLabs AI voice, and the report and README now say so** (the gate screen also credits it, and every mp3 carries an AI-generated tag in its metadata via `npm run voice`). Keep that true as voices are added.
+- "Use of AI": Claude (coding only, through Claude Code; the user decided the idea and every creative decision were the team's own and removed any mention of brainstorming; every commit after the first scaffold is Claude-authored with a Co-Authored-By trailer), ChatGPT (research; the user said "start GPT-M", which I **assumed means ChatGPT, unconfirmed**). Images/video: none AI. **Audio: the Director's hangar lines are ElevenLabs AI voice, and the report and README now say so** (the gate screen also credits it, and every mp3 carries an AI-generated tag in its metadata via `npm run voice`). Keep that true as voices are added.
 - NASA Data section is honest that no NASA dataset file was used, only published NASA figures; the numbers' sources come from the Handbook (p.22-24) and were not individually re-verified. Only the orbital maths was re-derived.
 - The report's year was changed from the template's 2025 to 2026.
 
 ## 7. Open items and risks
 
 - **Demo is mandatory** (NASA 2026 Project Submission Guide): one public link to either a video of 30 s or less, or a slide deck of at most 7 slides including title. Over the limit means no Global Judging. A slide demo should show team name, member names, the challenge, an image of the project, the user experience and how NASA data was used. **No demo exists yet**; the recommendation was a 7-slide deck (also avoids the rule that the demo may not show anyone under 18). The user has asked me not to repeat this in messages to their lead; just track it.
-- **AI rules**: SI should not be used to come up with the idea for solving the challenge. The report says Claude helped with brainstorming; **the user must confirm what that covered and that the wording is accurate.** Do not soften it on their behalf.
+- **AI rules**: SI should not be used to come up with the idea for solving the challenge. **Resolved by the user:** the report now says Claude only helped write the code and that the idea, story, design and creative decisions were the team's own. Do not add brainstorming back.
 - **NASA data**: Global Award needs at least one NASA data or resource. Published NASA figures probably count but are unconfirmed.
 - The placeholder `MissionDesigner` section on the home page is not canon (see section 3); replace it with a "Begin mission" entry once `/mission` exists.
 - No LICENSE in the repo.
