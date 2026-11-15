@@ -539,7 +539,7 @@ export class FlightSim {
 
   maxWarp(): number {
     if (this.mode === "docked" || this.mode === "lost") return 1;
-    if (this.thrusting) return this.accel > 1 ? 5 : 50;
+    if (this.thrusting) return this.accel > 1 ? 10 : 50;
     if (this.mode === "approach") return 10;
     if (this.conj.state === "alert" && this.conj.tca - this.t < 120) return 5;
     return WARPS[WARPS.length - 1];
@@ -674,7 +674,7 @@ export class FlightSim {
           acc = addScaled(acc, unit(cmd), a * Math.min(1, norm(this.rcs)));
         }
         const aMag = norm(acc);
-        if (wantBurn && this.latch) this.latch.done = addScaled(this.latch.done, this.att, this.accel * h);
+        if (wantBurn && this.latch && this.aim === "computer") this.latch.done = addScaled(this.latch.done, this.att, this.accel * h);
         this.ship = rk4(this.ship, acc, h);
         const dv = aMag * h;
         this.spent += dv;
@@ -736,7 +736,7 @@ export class FlightSim {
   /** Lock the active "aim" node's Δv as a fixed inertial vector when its burn starts. */
   private startLatch() {
     const node = this.plan[this.nodeIdx];
-    if (!node || this.mode !== "cruise" || node.how.type !== "aim") return;
+    if (!node || this.mode !== "cruise" || node.how.type !== "aim" || this.aim !== "computer") return;
     if (this.latch && this.latch.idx === this.nodeIdx) return; // resuming a burn that was paused
     const at = this.t < node.t ? propagate(this.ship, node.t - this.t) : this.ship;
     const dv = nodeDv(this.sc, node, at, Math.max(node.t, this.t));
@@ -762,7 +762,7 @@ export class FlightSim {
     this.remaining = dvNow ?? this.plannedDvCached(node);
     const rem = norm(this.remaining);
 
-    if (this.thrusting && this.guide) {
+    if (this.thrusting && this.guide && this.aim === "computer") {
       // cut off on target, or the moment the error starts growing again (overshoot)
       const flipped = latched ? dot(this.remaining, latched.target) <= 0 : false;
       if (rem < Math.max(0.05, Math.min(0.4, node.dv * 0.002)) || flipped || (rem > this.prevRem + 1e-3 && rem < 2)) {

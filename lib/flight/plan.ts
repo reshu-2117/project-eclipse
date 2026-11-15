@@ -173,7 +173,7 @@ export function buildScenario(route: RouteId, lead = LEAD_S, burnSeconds: (dv: n
       kind: "intercept",
       t: t1,
       label: "Intercept burn",
-      say: "One hard burn, aimed straight at where Lantern 17 will be in 22 minutes.",
+      say: "One big burn that points you straight at where Lantern 17 will be in 22 minutes.",
       dv: dvA,
       how: { type: "aim", aimT: tArr, aimR: aim.r },
     });
@@ -181,7 +181,7 @@ export function buildScenario(route: RouteId, lead = LEAD_S, burnSeconds: (dv: n
       kind: "match",
       t: tArr,
       label: "Match speed",
-      say: "You arrive fast. Burn hard against your motion to stop beside the station.",
+      say: "You will arrive too fast. This burn brakes you, so you stop right next to the station.",
       dv: dvB,
       how: { type: "rendezvous" },
     });
@@ -234,7 +234,7 @@ export function buildScenario(route: RouteId, lead = LEAD_S, burnSeconds: (dv: n
     kind: "depart",
     t: tDep,
     label: "Leave the Wick",
-    say: "Burn forward. Going faster at the bottom swings the far side of your orbit up to Lantern 17's height.",
+    say: "Speed up. That lifts the far side of your orbit up to Lantern 17's height.",
     dv: hoh.dv1,
     how: { type: "aim", aimT: tCirc, aimR: circR },
   });
@@ -242,7 +242,7 @@ export function buildScenario(route: RouteId, lead = LEAD_S, burnSeconds: (dv: n
     kind: "circularize",
     t: tCirc,
     label: "Round off the orbit",
-    say: "You've coasted to the top. Burn forward again, or you'll fall straight back down.",
+    say: "You've floated up to the top. Speed up again to stay up here.",
     dv: hoh.dv2,
     how: { type: "circular", planeH: shipH },
   });
@@ -253,7 +253,7 @@ export function buildScenario(route: RouteId, lead = LEAD_S, burnSeconds: (dv: n
       kind: "plane",
       t: tPlane,
       label: "Change plane 10°",
-      say: "Turn your whole orbit 10° to line up with Lantern 17. Turning is the most expensive thing in space.",
+      say: "Tilt your orbit 10° to line up with Lantern 17. Tilting costs a lot of fuel.",
       dv: norm(sub(vAfter, vBefore)),
       how: { type: "circular", planeH: H },
     });
@@ -262,7 +262,7 @@ export function buildScenario(route: RouteId, lead = LEAD_S, burnSeconds: (dv: n
     kind: "phaseDown",
     t: tDown,
     label: "Slow down to catch up",
-    say: `Lantern 17 is ${Math.round(lagAngle / DEG)}° ahead. Brake. A lower orbit is a faster one, so slowing down is how you catch it.`,
+    say: "Lantern 17 is ahead of you. Brake: a lower orbit is a faster one, so slowing down lets you catch up.",
     dv: ph.dv,
     how: { type: "aim", aimT: tUp, aimR: upR },
   });
@@ -270,7 +270,7 @@ export function buildScenario(route: RouteId, lead = LEAD_S, burnSeconds: (dv: n
     kind: "phaseUp",
     t: tUp,
     label: "Climb back and hold",
-    say: "Burn forward to climb back to its orbit and stop, one kilometre behind the station.",
+    say: "Speed up again to climb back up. You stop 1 km behind the station.",
     dv: ph.dv,
     how: { type: "rendezvous" },
   });
@@ -492,7 +492,7 @@ export function replan(sc: Scenario, s: State, t: number, terminal = false): { n
       kind: "match",
       t: start + best.tof,
       label: "Match speed",
-      say: "Burn against your motion to stop one kilometre behind the station.",
+      say: "Brake, so you stop 1 km behind the station.",
       dv: best.dvB,
       how: { type: "rendezvous" },
     },

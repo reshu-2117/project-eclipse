@@ -73,6 +73,8 @@ interface Hud {
   lidar: boolean;
   slowmo: boolean;
   scope: Scope | null;
+  armed: boolean;
+  burnLeftS: number;
 }
 
 /** The orbit scope: a top-down schematic with heights exaggerated so 300 km and 1,000 km read apart. */
@@ -186,6 +188,8 @@ export default function FlightDeck({
   const [glError, setGlError] = useState<string | null>(null);
   const overlayRef = useRef<Overlay>(overlay);
   const keys = useRef(new Set<string>());
+  /** The one-button pilot (Guide on): skip to the next burn, fire it, stop it; dodge in one tap. */
+  const pilot = useRef({ armed: false, auto: false, dodging: 0 });
 
   useEffect(() => {
     gameRef.current = game;
@@ -285,6 +289,9 @@ export default function FlightDeck({
           case "burnStart":
             break;
           case "cutoff":
+            pilot.current.auto = false;
+            sim.latched = false;
+            sim.setWarp(1);
             sound.ping(660);
             notify(`Engine cut-off. ${r1(e.value ?? 0)} m/s done.`, "good");
             break;
@@ -417,13 +424,46 @@ export default function FlightDeck({
       // controls from held keys (approach)
       if (sim.mode === "approach") {
         const k = keys.current;
-        const ax = (k.has("KeyW") ? 1 : 0) - (k.has("KeyS") ? 1 : 0);
-        const ay = (k.has("KeyR") || k.has("ArrowUp") ? 1 : 0) - (k.has("KeyF") || k.has("ArrowDown") ? 1 : 0);
-        const az = (k.has("KeyA") || k.has("ArrowLeft") ? 1 : 0) - (k.has("KeyD") || k.has("ArrowRight") ? 1 : 0);
-        if (k.size || padRef.current.some((x) => x !== 0)) {
-          const p = padRef.current;
-          sim.rcs = [Math.max(-1, Math.min(1, ax + p[0])), Math.max(-1, Math.min(1, ay + p[1])), Math.max(-1, Math.min(1, az + p[2]))];
-        } else sim.rcs = [0, 0, 0];
+        const p = padRef.current;
+        const ax = (k.has("KeyW") ? 1 : 0) - (k.has("KeyS") ? 1 : 0) + p[0];
+        let ay = (k.has("KeyR") || k.has("ArrowUp") ? 1 : 0) - (k.has("KeyF") || k.has("ArrowDown") ? 1 : 0) + p[1];
+        let az = (k.has("KeyA") || k.has("ArrowLeft") ? 1 : 0) - (k.has("KeyD") || k.has("ArrowRight") ? 1 : 0) + p[2];
+        if (sim.guide) {
+          // docking assist: the computer keeps you on the centreline; you only choose the speed
+          const d = sim.dockData();
+          const k2 = d.range < 60 ? 0.08 : 0.03;
+          const band = d.range < 60 ? 0.008 : 0.03;
+          const wantUp = Math.max(-0.25, Math.min(0.25, -k2 * d.up));
+          const wantSide = Math.max(-0.25, Math.min(0.25, -k2 * d.side));
+          if (ay === 0 && Math.abs(wantUp - d.vUp) > band) ay = Math.sign(wantUp - d.vUp);
+          if (az === 0 && Math.abs(wantSide - d.vSide) > band) az = Math.sign(wantSide - d.vSide);
+        }
+        sim.rcs = [Math.max(-1, Math.min(1, ax)), Math.max(-1, Math.min(1, ay)), Math.max(-1, Math.min(1, az))];
+      } else if (sim.mode === "cruise" && sim.guide && overlayRef.current === null) {
+        const pl = pilot.current;
+        const node = sim.node;
+        if (pl.dodging > 0) {
+          // the dodge: a short burn the other way, then back to the plan
+          if (sim.thrusting && sim.burnDv >= pl.dodging) {
+            sim.burn = false;
+            sim.latched = false;
+            sim.aim = "computer";
+            pl.dodging = 0;
+          }
+        } else if (pl.armed && node) {
+          const start = sim.burnStartT(node, norm(sim.plannedDvForHud(node)));
+          const left = start - sim.t;
+          if (left <= 0.5) {
+            pl.armed = false;
+            pl.auto = true;
+            sim.aim = "computer";
+            sim.burn = true;
+          } else {
+            // fly fast, but never past the burn
+            const fit = WARPS.filter((w) => w * 0.05 < left * 0.8 && w <= sim.maxWarp());
+            sim.setWarp(fit.length ? fit[fit.length - 1] : 1);
+          }
+        } else if (pl.auto && sim.thrusting) sim.setWarp(sim.maxWarp());
       }
       const paused = overlayRef.current !== null && overlayRef.current !== "docked";
       const evs = paused ? [] : sim.step(dt);
@@ -515,6 +555,8 @@ export default function FlightDeck({
           lidar: sim.spec.lidar,
           slowmo: sim.slowmo > 0,
           scope,
+          armed: pilot.current.armed,
+          burnLeftS: sim.thrusting ? sim.burnSeconds(norm(sim.remaining)) : 0,
         });
       }
     };
@@ -529,6 +571,38 @@ export default function FlightDeck({
     p[axis] = v;
     padRef.current = p;
   }, []);
+  /** The one button (Guide on): stop a burn, start it, or skip ahead to the next one and fire it. */
+  const mainButton = useCallback(() => {
+    const sim = simRef.current;
+    if (!sim || overlayRef.current) return;
+    sound.unlock();
+    const pl = pilot.current;
+    if (sim.thrusting || pl.auto || pl.armed) {
+      sim.burn = false;
+      sim.latched = false;
+      pl.auto = false;
+      pl.armed = false;
+      sim.setWarp(1);
+      sound.click();
+      return;
+    }
+    const node = sim.node;
+    if (!node) {
+      sim.setWarp(WARPS[WARPS.length - 1]);
+      sound.click();
+      return;
+    }
+    const start = sim.burnStartT(node, norm(sim.plannedDvForHud(node)));
+    sim.aim = "computer";
+    if (start - sim.t > 2) {
+      pl.armed = true;
+      sound.click();
+    } else {
+      pl.auto = true;
+      sim.burn = true;
+    }
+  }, [sound]);
+
   const burnDown = useCallback(() => {
     const sim = simRef.current;
     if (!sim || overlayRef.current) return;
@@ -579,8 +653,19 @@ export default function FlightDeck({
   const dodge = useCallback(() => {
     const sim = simRef.current;
     if (!sim?.conj.dodge) return;
+    sound.unlock();
     sim.aim = sim.conj.dodge.aim;
-    notify(`Aiming ${AIMS.find((a) => a.id === sim.conj.dodge!.aim)?.label.toLowerCase()}. Hold BURN for about ${r1(sim.conj.dodge.dv)} m/s, then switch back to Computer.`, "info");
+    if (sim.guide) {
+      // one tap: turn, burn the small dodge, turn back to the plan
+      pilot.current.armed = false;
+      pilot.current.auto = false;
+      pilot.current.dodging = sim.conj.dodge.dv;
+      sim.setWarp(1);
+      sim.burn = true;
+      notify(`Dodging: ${r1(sim.conj.dodge.dv)} m/s ${AIMS.find((a) => a.id === sim.conj.dodge!.aim)?.label.toLowerCase()}. The computer turns back to the plan after.`, "info");
+    } else {
+      notify(`Aiming ${AIMS.find((a) => a.id === sim.conj.dodge!.aim)?.label.toLowerCase()}. Hold BURN for about ${r1(sim.conj.dodge.dv)} m/s, then switch back to Computer.`, "info");
+    }
     sound.click();
   }, [notify, sound]);
 
@@ -591,7 +676,10 @@ export default function FlightDeck({
       if (!sim) return;
       if (e.code === "Space") {
         e.preventDefault();
-        if (!e.repeat) burnDown();
+        if (!e.repeat) {
+          if (sim.guide && sim.mode === "cruise") mainButton();
+          else burnDown();
+        }
         return;
       }
       if (sim.mode === "approach") {
@@ -611,7 +699,7 @@ export default function FlightDeck({
       else if (e.code === "KeyG") toggleGuide();
     };
     const up = (e: KeyboardEvent) => {
-      if (e.code === "Space") burnUp();
+      if (e.code === "Space" && !simRef.current?.guide) burnUp();
       keys.current.delete(e.code);
     };
     const blur = () => {
@@ -626,7 +714,7 @@ export default function FlightDeck({
       window.removeEventListener("keyup", up);
       window.removeEventListener("blur", blur);
     };
-  }, [burnDown, burnUp, setAim, setWarp, skipAhead, setView, toggleGuide, view]);
+  }, [burnDown, burnUp, mainButton, setAim, setWarp, skipAhead, setView, toggleGuide, view]);
 
   // camera drag and zoom
   useEffect(() => {
@@ -893,21 +981,40 @@ export default function FlightDeck({
               ) : (
                 <p className="fd-say">Closing on the approach point.</p>
               )}
-              <button
-                type="button"
-                className="fd-burn"
-                onPointerDown={(e) => {
-                  e.currentTarget.setPointerCapture(e.pointerId);
-                  burnDown();
-                }}
-                onPointerUp={burnUp}
-                onPointerCancel={burnUp}
-                onContextMenu={(e) => e.preventDefault()}
-                aria-label="Hold to burn the main engine (Space)"
-              >
-                <span>{h.thrusting ? "BURNING" : "HOLD TO BURN"}</span>
-                <small>Space</small>
-              </button>
+              {h.guide ? (
+                <button type="button" className="fd-burn" onClick={mainButton} onContextMenu={(e) => e.preventDefault()}>
+                  <span>
+                    {h.thrusting
+                      ? `BURNING · ${mmss(h.node ? h.burnLeftS : 0)} LEFT`
+                      : h.armed
+                        ? "SKIPPING TO THE BURN…"
+                        : !h.node
+                          ? "SKIP AHEAD"
+                          : h.node.toStart > 2
+                            ? "GO TO THE NEXT BURN"
+                            : "START THE BURN"}
+                  </span>
+                  <small>
+                    {h.thrusting || h.armed ? "tap to stop" : h.node ? "one tap: it skips ahead, fires and stops by itself" : "fast-forward to the station"}
+                  </small>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="fd-burn"
+                  onPointerDown={(e) => {
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    burnDown();
+                  }}
+                  onPointerUp={burnUp}
+                  onPointerCancel={burnUp}
+                  onContextMenu={(e) => e.preventDefault()}
+                  aria-label="Hold to burn the main engine (Space)"
+                >
+                  <span>{h.thrusting ? "BURNING" : "HOLD TO BURN"}</span>
+                  <small>Space · Guide is off: you start and stop the engine</small>
+                </button>
+              )}
             </section>
           )}
 
@@ -928,7 +1035,7 @@ export default function FlightDeck({
                 ))}
               </div>
               <button type="button" className="fd-guide" aria-pressed={h.guide} onClick={toggleGuide}>
-                Guide {h.guide ? "on" : "off"} <small>{h.guide ? "the computer waits until you're pointed right, and cuts the engine on target" : "you light and cut the engine yourself"}</small>
+                Guide {h.guide ? "on" : "off"} <small>{h.guide ? "one tap per burn: the computer turns the ship, fires and stops on target. Docking keeps you centred." : "expert: you hold the engine on and let go yourself, and steer the docking"}</small>
               </button>
             </section>
           )}
@@ -1017,10 +1124,10 @@ export default function FlightDeck({
                 <b>Forward makes you climb. Braking makes you faster.</b> A lower orbit is a quicker one. Your gut will be wrong; the computer won&apos;t.
               </li>
               <li>
-                <b>Hold BURN (Space) when the countdown hits zero.</b> With Guide on, the computer points the ship and cuts the engine for you.
+                <b>One button.</b> Tap it: the game skips ahead to the next burn, turns the ship, fires and stops by itself. Read what the computer says while it does.
               </li>
               <li>
-                <b>The last kilometre is on thrusters.</b> Touch the docking ring slower than {SOFT.speed} m/s.
+                <b>The last kilometre is on thrusters.</b> The computer keeps you lined up; you tap Forward and Back to keep the speed green, and touch the ring slower than {SOFT.speed} m/s.
               </li>
             </ol>
             <p className="fd-fine">
@@ -1242,13 +1349,17 @@ function ApproachPanel({
         </div>
       </div>
       <p className="fd-hint">
-        {d.lateral > Math.max(0.5, d.range * 0.25)
+        {h.guide && d.lateral > Math.max(0.5, d.range * 0.25)
+          ? "The computer is lining you up with the ring. Wait a moment, or tap Back to hold."
+          : d.lateral > Math.max(0.5, d.range * 0.25)
           ? "Line up first: get the ring onto the cross, then move in."
           : d.closing > limit
             ? "Too fast for this distance. Tap Back."
             : d.closing < 0.02 && d.range > 2
               ? "Tap Forward to start closing."
-              : "Steady. Small taps."}
+              : h.guide
+                ? "Good. The computer keeps you centred; you keep the speed green."
+                : "Steady. Small taps."}
         {view !== "cockpit" && d.range < 120 && (
           <>
             {" "}
