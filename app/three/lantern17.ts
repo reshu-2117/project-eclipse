@@ -11,6 +11,7 @@
 import * as THREE from "three";
 import type { ZoneId } from "@/lib/game";
 import { flareTexture, glowTexture, tex } from "./cinema";
+import { TEMPS, setTemp } from "./thermal";
 
 export interface StationState {
   /** Lantern 17's light output, 0..1 (61% at the start) */
@@ -508,6 +509,7 @@ export function buildLantern17(opts: { detail?: "high" | "low" } = {}): Lantern1
   disposables.push(beamMat);
   const beamLen = 1600;
   const beam = new THREE.Mesh(new THREE.CylinderGeometry(9, 70, beamLen, 48, 1, true), beamMat);
+  beam.userData.thermalHide = true;
   beam.position.set(KILN_X, -6 - beamLen / 2, 0);
   group.add(beam);
 
@@ -554,6 +556,42 @@ export function buildLantern17(opts: { detail?: "high" | "low" } = {}): Lantern1
   const rails = new THREE.InstancedMesh(new THREE.TorusGeometry(0.22, 0.035, 6, 14, Math.PI), railMat, handholds.length);
   handholds.forEach((p, i) => rails.setMatrixAt(i, new THREE.Matrix4().compose(p, new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, 0)), new THREE.Vector3(1, 1, 1))));
   group.add(rails);
+
+  // ── temperatures for the thermal view ──
+  setTemp(hub, TEMPS.pressurised);
+  setTemp(kiln, TEMPS.kilnShell);
+  core.userData.tempK = TEMPS.kilnCore;
+  box.userData.tempK = TEMPS.electronics;
+  for (const fin of fins) {
+    fin.children.forEach((ch) => {
+      const m = ch as THREE.Mesh;
+      ch.userData.tempK = m.material === loopMat ? TEMPS.coolant : m.material === finMat ? TEMPS.radiator : TEMPS.structure;
+    });
+  }
+  petals.children.forEach((ch) => {
+    const m = ch as THREE.Mesh;
+    if (m.material === mirrorMat || ch === segment7) ch.userData.tempK = TEMPS.mirror;
+  });
+  gyroBox.userData.tempK = TEMPS.electronics;
+  wheels.forEach((w) => (w.userData.tempK = TEMPS.electronics + 20));
+  // the leak reads cold: escaping ammonia flash-freezes
+  snow.userData.thermalColor = 0x1a0a3a;
+  // the burn scar: invisible to the eye, a hot bloom to a thermal camera (clue C2)
+  if (segment7) {
+    const s7 = segment7 as THREE.Mesh;
+    const scar = new THREE.Mesh(new THREE.CircleGeometry(1.4, 32), new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide }));
+    scar.position.copy(s7.position);
+    scar.quaternion.copy(s7.quaternion);
+    // face the mirror's reflective side (towards the Kiln), just proud of the surface
+    scar.rotateX(Math.PI / 2);
+    scar.translateZ(0.14);
+    scar.translateX(0.6);
+    scar.translateY(0.4);
+    scar.userData.tempK = TEMPS.scar;
+    scar.userData.thermalOnly = true;
+    scar.visible = false;
+    petals.add(scar);
+  }
 
   const anchors: Record<ZoneId, THREE.Vector3> = {
     dock: new THREE.Vector3(PORT_X + 6, 0, 0),

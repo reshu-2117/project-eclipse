@@ -10,6 +10,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import {
   HAZARDS,
+  SENSORS,
+  testUnlocked,
   METHOD_HOURS,
   REPAIR_HOURS,
   ZONES,
@@ -53,6 +55,14 @@ const SEE: Record<ZoneId, (s: { leak: boolean; drift: boolean; found: (f: string
 
 const HAZARD_ZONE: Record<HazardId, ZoneId> = { leak: "radiators", drift: "spine" };
 
+/** What the thermal visor shows that your eyes can't. To count as evidence, record it with the ship's thermal camera (Scan). */
+const THERMAL_HINT: Partial<Record<ZoneId, string>> = {
+  petals: "Thermal: one segment has a white-hot bloom on its face, where the light was focused. Your eyes can't see it. A thermal scan from the ship would record it.",
+  radiators: "Thermal: a cold, dark plume streams off the fin's edge. Escaping ammonia flash-freezes.",
+  kiln: "Thermal: the Kiln is white-hot, and so is everything within a few metres of it.",
+  dock: "Thermal: the hub and your ship glow warm. People live in there.",
+};
+
 export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx; coach: { title: string; text: string }; onGuide: () => void; sound: Sound }) {
   const g = c.game;
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -63,6 +73,7 @@ export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx;
   const [pins, setPins] = useState<ScreenPin[]>([]);
   const [thermal, setThermal] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [testShot, setTestShot] = useState(false);
   const hasThermal = hasSensor(g, "thermal");
 
   useEffect(() => {
@@ -182,6 +193,26 @@ export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx;
     if (sceneRef.current) sceneRef.current.thermal = thermal;
   }, [thermal]);
 
+  // the test: when the engine records it, play the shot; afterwards the block stays pushed
+  const testAt = g.test?.t ?? null;
+  const seenTest = useRef(testAt);
+  useEffect(() => {
+    const s = sceneRef.current;
+    if (!s) return;
+    if (testAt !== null && seenTest.current === null) {
+      setThermal(false);
+      s.playTest();
+      sound.swell(92);
+      sound.burn(6);
+      setTestShot(true);
+      const id = window.setTimeout(() => setTestShot(false), 10500);
+      seenTest.current = testAt;
+      return () => window.clearTimeout(id);
+    }
+    s.testDone = testAt !== null;
+    seenTest.current = testAt;
+  }, [testAt, sound]);
+
   const go = (z: ZoneId) => {
     const s = sceneRef.current;
     if (!s) return;
@@ -233,7 +264,7 @@ export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx;
   }
 
   return (
-    <div className={`sw${thermal ? " thermal" : ""}`}>
+    <div className={`sw${thermal ? " thermal" : ""}${testShot ? " shot" : ""}`}>
       <canvas ref={canvasRef} className="sw-canvas" aria-label="Outside Lantern 17, first person" />
       <div className="sw-visor" aria-hidden="true" />
 
@@ -245,6 +276,19 @@ export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx;
               <span>{p.label}</span>
             </div>
           ),
+      )}
+
+      {testShot && g.test && (
+        <div className="sw-testread" role="status">
+          <p className="sw-eyebrow">The controlled test · 10 kW for 60 s</p>
+          <p className="big">
+            {r1(g.test.measuredCmS)} <small>± {r1((g.test.measuredCmS * g.test.bandPct) / 100)} cm/s</small>
+          </p>
+          <p>
+            The block moved. Light alone pushed it, measured with your {SENSORS[g.test.sensor].name.toLowerCase()} (±{g.test.bandPct}%:{" "}
+            {g.test.bandPct <= 3 ? "proven" : g.test.bandPct <= 15 ? "likely" : "maybe"}).
+          </p>
+        </div>
       )}
 
       {/* the suit's readouts */}
@@ -326,6 +370,7 @@ export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx;
             </p>
             <h2>{known ? z.name : "Unknown zone"}</h2>
             <p className="sw-see">{see}</p>
+            {thermal && THERMAL_HINT[zone] && <p className="sw-thermal">{THERMAL_HINT[zone]}</p>}
             {known && (
               <p className="sw-hazard">
                 <b>Watch out:</b> {z.hazard}
@@ -356,6 +401,7 @@ export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx;
                 </div>
               );
             })}
+            {(zone === "petals" || zone === "kiln") && <TestCard c={c} />}
             <div className="sw-methods" role="group" aria-label="Ways to look">
               {METHODS.map((m) => {
                 const o = opt((a) => a.type === "inspect" && a.zone === zone && a.method === m.id);
@@ -388,6 +434,34 @@ export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx;
         <Latest game={g} from={c.from} />
         <p className="sw-fine">Time out here is compressed: the clock and your suit air move by the real hours each job takes.</p>
       </section>
+    </div>
+  );
+}
+
+/** The controlled test, from where you can see it happen. */
+function TestCard({ c }: { c: QuestCtx }) {
+  const g = c.game;
+  const o = c.opts.find((x) => x.action.type === "test");
+  const unlocked = testUnlocked(g);
+  if (g.test) {
+    return (
+      <div className="sw-test done">
+        <p className="sw-eyebrow">The test · done</p>
+        <b>
+          The block moved {r1(g.test.measuredCmS)} cm/s (±{g.test.bandPct}%). Light pushes ice.
+        </b>
+      </div>
+    );
+  }
+  return (
+    <div className={`sw-test${unlocked ? " ready" : ""}`}>
+      <p className="sw-eyebrow">The test · {unlocked ? "ready" : "locked"}</p>
+      <b>Aim the cracked segment at a 1 m block of ice and fire for 60 seconds.</b>
+      <p>If light can push ice, the block will move, and your best sensor will measure how fast. Two hours; Lantern 17 goes dark for one of them.</p>
+      <button type="button" className="sw-act fix" aria-disabled={!o?.ok || undefined} onClick={() => c.run({ type: "test" }, "thump")}>
+        Run the test <i>2 h</i>
+      </button>
+      {o && !o.ok && <p className="sq-why">{o.reason}</p>}
     </div>
   );
 }

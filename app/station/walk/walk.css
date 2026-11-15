@@ -427,3 +427,87 @@
   font-size: 13px;
   line-height: 1.5;
 }
+
+.sw-thermal {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #ffd9a8;
+  background: linear-gradient(90deg, rgba(120, 20, 120, 0.35), rgba(255, 120, 20, 0.18));
+  border: 1px solid rgba(255, 150, 60, 0.35);
+}
+
+.sw-test {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 181, 71, 0.3);
+  background: rgba(255, 181, 71, 0.05);
+}
+.sw-test p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--body);
+}
+.sw-test.ready {
+  border-color: rgba(255, 181, 71, 0.7);
+  box-shadow: 0 0 24px rgba(255, 181, 71, 0.15);
+}
+.sw-test.done {
+  border-color: rgba(125, 255, 176, 0.45);
+  background: rgba(125, 255, 176, 0.05);
+}
+.sw-testread {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: 18%;
+  transform: translateX(-50%);
+  width: min(520px, calc(100% - 32px));
+  padding: 16px 18px;
+  border-radius: 14px;
+  text-align: center;
+  background: rgba(5, 8, 13, 0.82);
+  border: 1px solid rgba(255, 181, 71, 0.5);
+  backdrop-filter: blur(8px);
+  animation: sw-rise 0.6s ease 6.8s both;
+}
+.sw-testread p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--body);
+}
+.sw-testread .big {
+  font-family: var(--serif);
+  font-size: 52px;
+  line-height: 1;
+  color: var(--amber);
+}
+.sw-testread small {
+  font-family: var(--mono);
+  font-size: 15px;
+  color: var(--frost);
+}
+@keyframes sw-rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sw-testread {
+    animation: none;
+  }
+}
+
+/* during the test shot the HUD steps out of the way */
+.sw.shot .sw-panel,
+.sw.shot .sw-coach,
+.sw.shot .sw-pin {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s;
+}

@@ -1,6 +1,6 @@
 /** Piloted flights: the flight deck reports time, extra burns and docking; the rules stay the same. */
 import { describe, expect, it } from "vitest";
-import { createGame, dvLeft, options, replay, step, type Action, type GameState } from "../index";
+import { createGame, debrief, dvLeft, flightReport, options, replay, replayPoint, step, type Action, type GameState } from "../index";
 
 function play(s: GameState, ...actions: Action[]): GameState {
   for (const a of actions) {
@@ -95,5 +95,36 @@ describe("piloted flight", () => {
     r = step(r, { type: "dock", dv: 1.5, hours: 0.25, hull: 4, speed: 0.4 }).state;
     expect(JSON.stringify(r)).toBe(JSON.stringify(s));
     expect(typeof replay).toBe("function");
+  });
+});
+
+describe("the piloted debrief", () => {
+  it("reports the flight from the ledger and adds the flight lessons", () => {
+    let s = flyCards(start(5));
+    s = play(s, { type: "flight", dv: 0, hours: 0.1, hull: 50, note: "Ice fragment: direct hit" });
+    s = play(s, { type: "dock", dv: 45, hours: 0.2, hull: 9, speed: 0.6 });
+    const f = flightReport(s)!;
+    expect(f.docked).toBe(true);
+    expect(f.soft).toBe(false);
+    expect(f.speed).toBeCloseTo(0.6, 2);
+    expect(f.extraDv).toBeCloseTo(45, 3);
+    expect(f.iceHits).toBe(1);
+    expect(f.iceHull).toBe(50);
+    s = play(s, { type: "toChoice" });
+    const pick = options(s).find((o) => o.ok && o.action.type === "choose");
+    s = play(s, pick!.action);
+    while (s.phase === "endgame") s = play(s, { type: "depart" });
+    const d = debrief(s);
+    expect(d.better.some((b) => b.startsWith("Hard dock"))).toBe(true);
+    expect(d.better.some((b) => b.includes("dodge"))).toBe(true);
+    expect(d.realLife.some((c) => c.key === "vbar")).toBe(true);
+  });
+
+  it("replays from the hangar or from the launch with the same seed", () => {
+    const actions: Action[] = [{ type: "begin" }, { type: "fuel", kg: 1500 }, { type: "launch" }, { type: "route", id: "quick", piloted: true }, { type: "flight", dv: 0, hours: 1, hull: 0 }];
+    expect(replayPoint(actions, "hangar").map((a) => a.type)).toEqual(["begin", "fuel"]);
+    expect(replayPoint(actions, "route").map((a) => a.type)).toEqual(["begin", "fuel", "launch"]);
+    expect(replay(1, replayPoint(actions, "hangar")).state.phase).toBe("hangar");
+    expect(replay(1, replayPoint(actions, "route")).state.phase).toBe("route");
   });
 });

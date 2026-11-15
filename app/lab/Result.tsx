@@ -69,6 +69,30 @@ export default function Result({ s }: { s: GameState }) {
         </div>
       </div>
 
+      {d.flight && (
+        <div className="lab-flight">
+          <h3 className="lab-h3">Your flight</h3>
+          <div className="lab-score">
+            <div className={d.flight.docked ? (d.flight.soft ? "is-ok" : "is-bad") : "is-bad"}>
+              <span>Docking</span>
+              <b>{d.flight.docked ? (d.flight.soft ? "Soft capture" : "Hard dock") : "Never docked"}</b>
+            </div>
+            <div>
+              <span>Contact speed</span>
+              <b className="lab-mono">{d.flight.speed === null ? "—" : `${d.flight.speed.toFixed(2)} m/s`}</b>
+            </div>
+            <div className={d.flight.extraDv > 30 ? "is-bad" : "is-ok"}>
+              <span>Δv vs the route card</span>
+              <b className="lab-mono">{d.flight.extraDv >= 0 ? `+${r0(d.flight.extraDv)}` : `−${r0(-d.flight.extraDv)}`} m/s</b>
+            </div>
+            <div className={d.flight.iceHits ? "is-bad" : "is-ok"}>
+              <span>Ice fragment</span>
+              <b>{d.flight.iceHits ? `Hit: −${d.flight.iceHull} hull` : "Missed you"}</b>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="cx-visuals">
         <MissDiagram o={o} />
         <CityLamps o={o} />

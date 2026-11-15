@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createGame, step, ROUTE_ORDER, type Action, type GameState, type RouteId } from "../../game";
 import { FlightSim, PORT_LOCAL, NOSE_M } from "../sim";
 import { norm } from "../kepler";
+import { bumpDamage, fragmentDamage } from "../ship";
 
 function play(s: GameState, ...actions: Action[]): GameState {
   for (const a of actions) {
@@ -111,6 +112,24 @@ describe("the live flight", () => {
     const log = fly(sim);
     expect(sim.mode, log.slice(-12).join("\n")).toBe("docked");
     expect(sim.extraDv()).toBeLessThan(40);
+  });
+
+  it("the shield's ballistic limit decides what a debris cloud does; a direct hit beats any shield", () => {
+    // a close pass through the cloud: the bare hull lets pieces through, a heavy Whipple stops them
+    let bare = 0;
+    let heavy = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      bare += fragmentDamage(8, "none", seed).hull;
+      heavy += fragmentDamage(8, "heavy", seed).hull;
+    }
+    expect(bare).toBeGreaterThan(0);
+    expect(heavy).toBeLessThan(bare);
+    expect(fragmentDamage(3, "heavy", 1).direct).toBe(true);
+    expect(fragmentDamage(3, "heavy", 1).hull).toBeGreaterThan(0);
+    expect(fragmentDamage(60, "none", 1).hull).toBe(0);
+    // a slow bump: energy, not penetration
+    expect(bumpDamage(470, 0.5)).toBe(1);
+    expect(bumpDamage(30_000, 1)).toBe(10);
   });
 
   it("an ignored fragment alert sometimes hits", { timeout: 120_000 }, () => {

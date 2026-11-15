@@ -25,12 +25,64 @@ export const THRUST: Record<EngineId, Thrust> = {
 /** Reaction-control thrusters used for docking: two per direction. Real: Draco, 400 N. */
 export const RCS = { newtons: 2 * 400, source: "real" as const, note: "2 × Draco-class 400 N per direction" };
 
-/** Hull damage from one ice hit, by shield (game values, matching the event cards' scale). */
-export const ICE_HIT: Record<ShieldId, { fast: number; perMps: number }> = {
-  none: { fast: 30, perMps: 9 },
-  light: { fast: 16, perMps: 5 },
-  heavy: { fast: 7, perMps: 2 },
-};
+/**
+ * The biggest ice particle each wall stops at about 7 km/s, cm.
+ * NASA rates the ISS Whipple shield at about 1 cm of aluminium (a stuffed Whipple about 1.4 cm, a
+ * single wall about 0.3 cm). Ice is a third as dense, and in the ballistic limit equations the critical
+ * size goes as density^(−1/3), so ice sizes are ×1.43.
+ */
+export const BALLISTIC_LIMIT_CM: Record<ShieldId, number> = { none: 0.43, light: 1.43, heavy: 2.0 };
+
+/**
+ * The fragment: tracking in low orbit sees objects from about 10 cm, so the one you're warned about is
+ * about that size. NASA's collision maths uses a "hard-body radius": your size plus its size.
+ * Around it travels a cloud of smaller pieces it has shed.
+ */
+export const FRAGMENT = { diameterCm: 12, hardBodyM: 5, cloudM: 30 } as const;
+
+function seeded(seed: number) {
+  let a = seed >>> 0 || 1;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * What the pass does. Inside the hard-body radius the fragment itself hits: 12 cm of ice at 7 km/s
+ * carries about 20 MJ, more than any shield stops. Inside the cloud, a spray of small pieces hits, sized
+ * by a debris power law (more small than large); only those bigger than your shield's limit get through.
+ */
+export function fragmentDamage(missM: number, shield: ShieldId, seed: number): { hull: number; strikes: number; through: number; direct: boolean } {
+  if (missM < FRAGMENT.hardBodyM) {
+    const hull = shield === "heavy" ? 40 : shield === "light" ? 50 : 60;
+    return { hull, strikes: 1, through: 1, direct: true };
+  }
+  if (missM > FRAGMENT.cloudM) return { hull: 0, strikes: 0, through: 0, direct: false };
+  const rnd = seeded(seed);
+  const strikes = Math.round(120 * Math.exp(-(missM - FRAGMENT.hardBodyM) / 7));
+  const limit = BALLISTIC_LIMIT_CM[shield];
+  let through = 0;
+  let hull = 0;
+  for (let i = 0; i < strikes; i++) {
+    // cumulative size distribution N(>d) ∝ d^-2.5, from 1 mm up
+    const d = 0.1 * Math.pow(1 - rnd(), -1 / 2.5);
+    if (d > limit) {
+      through++;
+      hull += Math.min(12, Math.round(3 + 4 * (d / limit - 1)));
+    }
+  }
+  return { hull: Math.min(45, hull), strikes, through, direct: false };
+}
+
+/** A slow bump with drifting ice is about momentum, not penetration: damage grows with the energy (½mv²). */
+export function bumpDamage(massKg: number, speed: number): number {
+  const joules = 0.5 * massKg * speed * speed;
+  return Math.max(1, Math.min(35, Math.round(joules / 1500)));
+}
 
 export interface ShipSpec {
   engine: EngineId;

@@ -25,6 +25,8 @@ import Journey from "./Journey";
 import Route from "./Route";
 import dynamic from "next/dynamic";
 import { actionsToFlight } from "./shortcut";
+import { GhostCompare, ReplayButtons } from "./Replay";
+import { replayPoint } from "@/lib/game";
 
 // the flight deck is WebGL: load it in the browser only, and only when the flight starts
 const FlightDeck = dynamic(() => import("./flight/FlightDeck"), { ssr: false });
@@ -245,14 +247,16 @@ function Gate({
 
 // ───────────────────────────── after launch ─────────────────────────────
 
-function Ending({ game, onRebuild }: { game: GameState; onRebuild: () => void }) {
+function Ending({ game, onRebuild, onReplay }: { game: GameState; onRebuild: () => void; onReplay: (at: "hangar" | "route") => void }) {
   return (
     <main className="ms-ending" id="main">
       <div className="ms-ending-inner">
         <p className="eyebrow">
           Mission over <b>{"//"}</b> Hour {Math.round(game.t * 10) / 10}
         </p>
+        <GhostCompare game={game} />
         <Result s={game} />
+        <ReplayButtons game={game} onReplay={onReplay} />
         <div className="ms-gate-actions">
           <button type="button" className="btn btn-lantern" onClick={onRebuild}>
             Build a different ship <span aria-hidden="true">↗</span>
@@ -416,6 +420,22 @@ export default function Mission() {
     setPlaying(true);
   };
 
+  /** Replay with one change: the same seed, back to the hangar or the launch. */
+  const replayAt = (at: "hangar" | "route") => {
+    sound.click();
+    said.current.clear();
+    setDeckHold(false);
+    try {
+      window.sessionStorage.removeItem("eclipse-flight");
+    } catch {
+      /* ignore */
+    }
+    const cur = runRef.current;
+    const actions = replayPoint(cur.actions, at);
+    commit({ ...cur, actions }, replay(cur.seed, actions).state);
+    window.scrollTo(0, 0);
+  };
+
   const rebuild = () => {
     said.current.clear();
     setDeckHold(false);
@@ -474,7 +494,7 @@ export default function Mission() {
       {game.piloted && (game.phase === "journey" || deckHold) ? (
         <FlightDeck game={game} act={act} sound={sound} say={say} onHold={setDeckHold} />
       ) : game.phase === "debrief" ? (
-        <Ending game={game} onRebuild={rebuild} />
+        <Ending game={game} onRebuild={rebuild} onReplay={replayAt} />
       ) : (
         <main id="main" className="ms-main">
           {game.phase === "hangar" ? (

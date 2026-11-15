@@ -12,7 +12,7 @@
  */
 import type { GameState } from "../game/types";
 import { dvLeft, isEclipse } from "../game/engine";
-import { ICE_HIT, RCS, shipSpec, type ShipSpec } from "./ship";
+import { FRAGMENT, RCS, bumpDamage, fragmentDamage, shipSpec, type ShipSpec } from "./ship";
 import {
   MU,
   R_PLANET,
@@ -72,6 +72,8 @@ export interface Conjunction {
   state: "pending" | "alert" | "passed" | "hit";
   /** how far it really passed, m */
   passedAt: number | null;
+  /** what the pass did */
+  damage?: { hull: number; strikes: number; through: number; direct: boolean };
 }
 
 export interface Chunk {
@@ -424,7 +426,7 @@ export class FlightSim {
       tca,
       alertT,
       frag0: this.sc.ship0,
-      trueMiss: 4 + this.rng() * 36,
+      trueMiss: 2 + this.rng() * 38,
       noise: [this.rng() * 2 - 1, this.rng() * 2 - 1, this.rng() * 2 - 1],
       predMiss: 0,
       pc: 0,
@@ -488,7 +490,7 @@ export class FlightSim {
     // what tracking says: the truth plus an error that shrinks with time
     const shown = Math.max(0, ca.d + c.noise[0] * sig * 0.6);
     c.predMiss = shown;
-    const R = 18;
+    const R = FRAGMENT.hardBodyM;
     c.pc = Math.min(0.5, ((R * R) / (2 * sig * sig)) * Math.exp(-(shown * shown) / (2 * sig * sig)));
     // the dodge: try small burns and keep the one that opens the gap most
     if (!this.thrusting) {
@@ -607,15 +609,16 @@ export class FlightSim {
     if (this.conj.state === "alert" && this.t >= this.conj.tca) {
       const d = closestApproach(this.ship, this.fragAt(), -2, 2, 40).d;
       this.conj.passedAt = d;
-      if (d < 18) {
+      const hit = fragmentDamage(d, this.spec.shield, this.seed * 7919 + 17);
+      this.conj.damage = hit;
+      if (hit.hull > 0) {
         this.conj.state = "hit";
-        const dmg = ICE_HIT[this.spec.shield].fast;
-        this.hullPending += dmg;
-        this.hullTotal += dmg;
-        ev.push({ type: "fragHit", value: dmg });
+        this.hullPending += hit.hull;
+        this.hullTotal += hit.hull;
+        ev.push({ type: "fragHit", value: hit.hull, text: hit.direct ? "direct" : `${hit.through} of ${hit.strikes}` });
       } else {
         this.conj.state = "passed";
-        ev.push({ type: "tca", value: d });
+        ev.push({ type: "tca", value: d, text: hit.strikes ? `${hit.strikes} stopped` : undefined });
       }
     }
     return ev;
@@ -872,7 +875,7 @@ export class FlightSim {
       if (dist < SHIP_R + c.size) {
         const relV = sub(c.s.v, this.ship.v);
         const sp = Math.abs(dot(relV, unit(d)));
-        const dmg = Math.max(1, Math.round(ICE_HIT[this.spec.shield].perMps * Math.max(0.2, sp) * Math.min(2.5, c.size)));
+        const dmg = bumpDamage(900 * (4 / 3) * Math.PI * c.size ** 3, sp);
         this.hullPending += dmg;
         this.hullTotal += dmg;
         c.hit = true;

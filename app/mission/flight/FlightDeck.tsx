@@ -306,15 +306,27 @@ export default function FlightDeck({
           case "tca":
             sound.pass();
             scene.shot = { kind: "pass", t: 0, dur: 3.4 };
-            notify(`It passed ${r0(e.value ?? 0)} m away.`, (e.value ?? 0) < 60 ? "warn" : "good");
+            notify(
+              `It passed ${r0(e.value ?? 0)} m away.${e.text ? ` Your shield stopped all ${e.text.split(" ")[0]} pieces of its cloud.` : ""}`,
+              (e.value ?? 0) < 60 ? "warn" : "good",
+            );
             break;
-          case "fragHit":
+          case "fragHit": {
             sound.alarm();
             sound.clack(1);
             scene.hit(1.2);
+            const r = sim.takeReport();
+            act({ type: "flight", dv: 0, hours: r.hours, hull: r.hull, note: e.text === "direct" ? "Ice fragment: direct hit" : "Ice fragment: its cloud got through" });
+            saveSnap();
             scene.shot = { kind: "pass", t: 0, dur: 3.4 };
-            notify(`Impact. The ice tore through the outer hull: −${e.value} hull.`, "warn");
+            notify(
+              e.text === "direct"
+                ? `Direct hit: 12 cm of ice at ${r1((simRef.current?.conj.relSpeed ?? 7000) / 1000)} km/s. No shield stops that. −${e.value} hull.`
+                : `Pieces of its cloud got through your shield (${e.text}). −${e.value} hull.`,
+              "warn",
+            );
             break;
+          }
           case "chunkHit":
             sound.clack(Math.min(1, 0.4 + (e.value ?? 1) / 10));
             scene.hit(0.4);
@@ -961,7 +973,7 @@ export default function FlightDeck({
                       <dd>{r1(h.conj.rel / 1000)} km/s</dd>
                     </div>
                   </dl>
-                  <p className="fd-real">Real rule: NASA moves the ISS when the chance is worse than 1 in 10,000, with a burn of about half a metre per second.</p>
+                  <p className="fd-real">Real rule: NASA moves the ISS when the chance is worse than 1 in 10,000, with a burn of about half a metre per second. A shield like the ISS&apos;s stops pieces up to about 1 cm; this fragment is about 12.</p>
                   {h.conj.dodge ? (
                     <button type="button" className="btn btn-lantern" onClick={dodge}>
                       Dodge: {r1(h.conj.dodge.dv)} m/s {AIMS.find((a) => a.id === h.conj.dodge!.aim)?.label.toLowerCase()}

@@ -5,10 +5,11 @@ import "./quest.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { dvLeft, evidence, iceClock, options, replay, step } from "@/lib/game";
+import { dvLeft, evidence, iceClock, options, replay, replayPoint, step } from "@/lib/game";
 import type { Action, GameState } from "@/lib/game";
 import { CHOICE_ENTER, STATION_CLUE, STATION_ENTER, STATION_LEAK, STATION_TEST, type VoiceLine } from "@/lib/game/data/story";
 import Result from "../lab/Result";
+import { GhostCompare, ReplayButtons } from "../mission/Replay";
 import { Sound, playLine, saveSettings, type LineHandle, type Settings } from "../mission/audio";
 import { actionsTo } from "../mission/shortcut";
 import { Decision, FinalHours } from "./Decide";
@@ -278,7 +279,20 @@ export default function StationQuest() {
         {g.phase === "debrief" ? (
           <div className="sq-end">
             <p className="sq-eyebrow">Mission over · hour {r1(g.t)}</p>
+            <GhostCompare game={g} />
             <Result s={g} />
+            <ReplayButtons
+              game={g}
+              onReplay={(at) => {
+                try {
+                  window.sessionStorage.removeItem("eclipse-flight");
+                } catch {
+                  /* ignore */
+                }
+                saveRun({ ...run, actions: replayPoint(run.actions, at) });
+                router.push("/mission");
+              }}
+            />
             <div className="sq-actions row">
               <button type="button" className="sq-btn big" onClick={playAgain}>
                 Play again with a new ship <span aria-hidden="true">↗</span>
