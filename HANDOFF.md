@@ -179,3 +179,15 @@ In `docs/submission/` (copies; the originals were in a temporary folder):
 - **Tests**: 91 (`lib/flight/__tests__/orbit.test.ts`, `sim.test.ts` with a robot pilot that flies every route to a soft capture, `lib/game/__tests__/piloted.test.ts`). `TEST_COUNT` in `app/lab/facts.ts` updated.
 - **Verified**: build passes; Playwright screenshots on desktop 1400×900 and phone 390×844 (intro, burns, orbit scope, map, approach, docking overlay, walk zones, thermal); an end-to-end run (cards in flight, soft capture, dock recorded in the saved run, `/station` opens on it) with no console errors. Headless Chromium renders at ~4 fps, so motion and feel are **not** play-tested by a human.
 - **Known limits / next**: fragment hit chance and haze damage are game values; the thermal visor is a palette over the whole view, not per-object temperatures; the test beam has no 3D cinematic yet (it's in the station guide); the debrief is unchanged; the demo deck still doesn't exist; the NASA report's "current status" needs the flight and walk added.
+
+## Session 4 (Sun 15 Nov, early): the "not dones", and live
+
+Everything below is merged to `main` and live (the user said "do the not dones also and push it live"). `main` had one new commit from another session (a Station link on the home page: menu, hero button, a Mission 002 section); it merged cleanly with the same menu link.
+
+- **Thermal visor** with per-part temperatures (`app/three/thermal.ts`; tags in `lantern17.ts`, `walkScene.ts`). C2's burn scar only in thermal. Zone hints in the walk say what the visor shows.
+- **The test in 3D** (`walkScene.ts` `playTest`, `StationWalk.tsx` `TestCard` at the Petals and the Kiln). The engine's `test` action is unchanged.
+- **Ice damage from physics** (`lib/flight/ship.ts`: `BALLISTIC_LIMIT_CM`, `FRAGMENT`, `fragmentDamage`, `bumpDamage`). Pc now uses a 5 m hard-body radius. A fragment hit is reported to the engine at once (ledger title "Ice fragment: …").
+- **Debrief**: `flightReport`, flight lessons, three real-life cards, `replayPoint`; `Replay.tsx` (ghost in sessionStorage `eclipse-ghost`).
+- **Report**: `docs/submission/Project_Eclipse_Components_of_Project_2026.docx` status paragraph rewritten in place (same 8 pages in LibreOffice). Its Demo Link field still says `/lab`; switch it to the deck's public link once the deck is shared.
+- **Demo deck**: 7 slides, published as a claude.ai Slides artifact (https://claude.ai/artifact/PHwNVuoedmNLfbTQ5CrSGv). **Private until the user shares it** from its Share menu; NASA needs a public link. Source copy in `docs/submission/demo-deck/`.
+- 94 tests. Build passes. Floodlights dim at close range (a white hub at a few metres burned out).

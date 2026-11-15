@@ -421,7 +421,8 @@ export class FlightScene {
     const rcsLocal = new THREE.Vector3(sim.rcs[0], sim.rcs[1], sim.rcs[2]);
     this.ship.update(this.time, sim.thrusting ? 1 : 0, sim.rcsActive ? rcsLocal : new THREE.Vector3(), sim.aligning ? 1 : 0);
     // floodlights on for the approach; dimmed once docked so the station isn't burned out
-    const floods = sim.mode === "docked" ? 0.12 : sim.mode === "approach" || l17d < 3000 ? 0.45 : 0;
+    // (dimmer up close, or a white hull at a few metres burns out)
+    const floods = sim.mode === "docked" ? 0.12 : sim.mode === "approach" || l17d < 3000 ? 0.05 + 0.4 * Math.min(1, Math.max(0, l17d - 40) / 260) : 0;
     this.ship.floods.forEach((s) => (s.intensity = floods * 9000));
 
     // lines, recomputed a few times a second (cheap enough, exact)

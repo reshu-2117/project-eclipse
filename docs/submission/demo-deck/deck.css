@@ -1,0 +1,258 @@
+:root {
+  --void: #070a10;
+  --deep: #0d1524;
+  --frost: #e6edf4;
+  --body: #b3c0cf;
+  --dim: #8796ab;
+  --amber: #ffb547;
+  --ice: #7fd4e8;
+  --line: #24324a;
+}
+
+body {
+  font-family: 'Inter', Arial, sans-serif;
+  color: var(--frost);
+}
+
+section {
+  background: var(--void);
+  padding: 128px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+section.alt {
+  background: var(--deep);
+}
+
+.eyebrow {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 26px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+h1 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 500;
+  font-size: 168px;
+  line-height: 0.95;
+  color: var(--frost);
+}
+
+h2 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 500;
+  font-size: 88px;
+  line-height: 1.02;
+  color: var(--frost);
+}
+
+h2 i,
+h1 i {
+  color: var(--amber);
+}
+
+h3 {
+  font-family: 'Inter', Arial, sans-serif;
+  font-weight: 600;
+  font-size: 34px;
+  line-height: 1.2;
+  color: var(--frost);
+}
+
+.lede {
+  font-size: 36px;
+  line-height: 1.45;
+  color: var(--body);
+}
+
+.body {
+  font-size: 28px;
+  line-height: 1.5;
+  color: var(--body);
+}
+
+.mono {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 24px;
+  letter-spacing: 2px;
+  color: var(--dim);
+}
+
+/* cover */
+.cover {
+  justify-content: flex-end;
+  gap: 28px;
+}
+.cover .shot {
+  position: absolute;
+  left: 900px;
+  top: 0;
+  width: 1020px;
+  height: 1080px;
+  object-fit: cover;
+}
+.cover .veil {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  background: linear-gradient(90deg, #070a10 0%, #070a10 46%, rgba(7, 10, 16, 0.55) 62%, rgba(7, 10, 16, 0) 85%);
+}
+.cover .team {
+  display: flex;
+  gap: 48px;
+  padding-top: 28px;
+  border-top: 2px solid var(--line);
+  width: 900px;
+}
+.cover .team p {
+  font-size: 28px;
+  line-height: 1.4;
+  color: var(--body);
+}
+.cover .team b {
+  color: var(--frost);
+}
+
+/* two columns: words and a picture */
+.split {
+  display: flex;
+  gap: 72px;
+  align-items: flex-start;
+  flex: 1;
+}
+.split .words {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 660px;
+}
+.split .pic {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.shotframe {
+  width: 100%;
+  height: 549px;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 2px solid var(--line);
+  background: #000000;
+}
+
+.caption {
+  font-size: 24px;
+  line-height: 1.45;
+  color: var(--dim);
+}
+
+.rule {
+  padding: 28px 32px;
+  border-radius: 18px;
+  border: 2px solid rgba(255, 181, 71, 0.45);
+  background: rgba(255, 181, 71, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rule .body {
+  color: var(--frost);
+}
+
+/* big numbers */
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+  width: 560px;
+}
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 26px;
+  border-left: 4px solid var(--amber);
+}
+.fact .num {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 72px;
+  line-height: 1;
+  color: var(--amber);
+}
+.fact .what {
+  font-size: 26px;
+  line-height: 1.4;
+  color: var(--body);
+}
+
+/* rows of pictures */
+.row {
+  display: flex;
+  gap: 40px;
+  flex: 1;
+}
+.tile {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.tile .shotframe {
+  height: 430px;
+}
+.row3 .tile .shotframe {
+  height: 330px;
+}
+.tile h3 {
+  color: var(--frost);
+}
+
+/* the NASA table */
+.nasa table {
+  font-size: 24px;
+  color: var(--body);
+}
+
+.foot {
+  font-size: 24px;
+  line-height: 1.45;
+  color: var(--dim);
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.link {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.link .mono {
+  color: var(--amber);
+}
+.link .addr {
+  font-size: 28px;
+  color: var(--frost);
+}
+
+/* arrival motion */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+.rise {
+  animation: rise 700ms ease-out both;
+  animation-delay: calc(var(--i, 0) * 120ms);
+}
