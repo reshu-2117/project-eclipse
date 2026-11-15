@@ -1088,6 +1088,7 @@ function inspect(s: GameState, zone: ZoneId, method: Method) {
     hours: job.hours,
     evidence: got.filter((f) => f in CLUES).reduce((n, f) => n + CLUES[f as ClueId].points, 0) || undefined,
   });
+  autoRuleOut(s);
   if (got.includes("leak"))
     log(s, "alarm", "A second clock", `${HAZARDS.leak.text} That's ${fmtHours(Math.max(0, CLOCKS.reactorH - s.t))} from now.`);
   if (got.includes("drift")) log(s, "notice", "Attitude drift", HAZARDS.drift.text);
@@ -1121,24 +1122,34 @@ function repair(s: GameState, what: "leak" | "drift", method: "eva" | "arm") {
   }
 }
 
+/** Whether the clues in hand prove a wrong idea wrong. */
+export function canRuleOut(s: GameState, hyp: "H1" | "H2"): boolean {
+  if (hyp === "H1") return (s.found.includes("C3") && s.found.includes("C4")) || s.found.includes("C6");
+  return s.found.includes("C2") && (hasSensor(s, "lidar") || hasSensor(s, "radar"));
+}
+
+function ruleOut(s: GameState, hyp: "H1" | "H2") {
+  s.crossed.push(hyp);
+  if (hyp === "H1") log(s, "choice", "Ruled out: sensor error", "Two different instruments recorded the same thing at the same moment.");
+  else log(s, "choice", "Ruled out: something else hit it", "No impact flash on the thermal record, and no other object in your sweep.");
+}
+
+/** Clues that prove an idea wrong cross it off at once: a free step the pilot should never have to hunt for. */
+function autoRuleOut(s: GameState) {
+  for (const h of ["H1", "H2"] as const) if (!s.crossed.includes(h) && canRuleOut(s, h)) ruleOut(s, h);
+}
+
 function crossOut(s: GameState, hyp: "H1" | "H2" | "H3") {
   stationOnly(s);
   if (s.crossed.includes(hyp)) no("Already ruled out.");
   if (hyp === "H3") no("The evidence supports this one. You can't rule it out.");
-  if (hyp === "H1") {
-    const ok = (s.found.includes("C3") && s.found.includes("C4")) || s.found.includes("C6");
-    if (!ok) no("Not yet. A sensor error is ruled out when two different sensors agree (C3 + C4), or by your own test.");
-    s.crossed.push("H1");
-    log(s, "choice", "Ruled out: sensor error", "Two different instruments recorded the same thing at the same moment.");
-    return;
-  }
-  const ok = s.found.includes("C2") && (hasSensor(s, "lidar") || hasSensor(s, "radar"));
-  if (!ok)
+  if (!canRuleOut(s, hyp))
     no(
-      "Not yet. To rule out another impact you need the thermal record (C2: no impact flash) and a lidar or radar sweep (no other object).",
+      hyp === "H1"
+        ? "Not yet. A sensor error is ruled out when two different sensors agree (C3 + C4), or by your own test."
+        : "Not yet. To rule out another impact you need the thermal record (C2: no impact flash) and a lidar or radar sweep (no other object).",
     );
-  s.crossed.push("H2");
-  log(s, "choice", "Ruled out: something else hit it", "No impact flash on the thermal record, and no other object in your sweep.");
+  ruleOut(s, hyp);
 }
 
 function runTest(s: GameState) {

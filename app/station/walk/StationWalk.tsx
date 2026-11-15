@@ -25,7 +25,7 @@ import {
   reactorClock,
 } from "@/lib/game";
 import type { Action, HazardId, Method, ZoneId } from "@/lib/game";
-import { Latest, clueCount, r1, type QuestCtx } from "../shared";
+import { Latest, clueCount, r1, type Coach, type QuestCtx } from "../shared";
 import { WalkScene, type Pin, type ScreenPin } from "./walkScene";
 import type { Sound } from "../../mission/audio";
 import Lumen, { type Tip } from "../../guide/Lumen";
@@ -64,7 +64,7 @@ const THERMAL_HINT: Partial<Record<ZoneId, string>> = {
   dock: "Thermal: the hub and your ship glow warm. People live in there.",
 };
 
-export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx; coach: { step: string; title: string; text: string }; onGuide: () => void; sound: Sound }) {
+export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx; coach: Coach; onGuide: () => void; sound: Sound }) {
   const g = c.game;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<WalkScene | null>(null);
@@ -284,6 +284,12 @@ export default function StationWalk({ c, coach, onGuide, sound }: { c: QuestCtx;
       return zone === "petals" || zone === "kiln"
         ? { ...base, id: `test-${zone}`, text: `${coach.text} The test is right here.`, target: ".sw-test" }
         : { ...base, id: "test-go", text: `${coach.text} Go to the Petals or the Kiln to run it.`, target: ".sw-zones" };
+    }
+    if (coach.zone) {
+      const there = ZONES[coach.zone].name;
+      return zone === coach.zone
+        ? { ...base, id: `clue-here-${zone}`, text: `${coach.text} You're at ${there}: pick that below.`, target: ".sw-methods" }
+        : { ...base, id: `clue-go-${coach.zone}`, text: `${coach.text} Glide to ${there} from the list on the left.`, target: ".sw-zones" };
     }
     return { ...base, id: `guide-${coach.step}-${coach.title}`, text: `${coach.text} You do that in the station guide.`, target: ".sw-guide" };
   }

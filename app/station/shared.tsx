@@ -1,7 +1,7 @@
 "use client";
 
-import { BELIEF, CLOCKS, CLUES, evidence, hasSensor, reactorClock, testUnlocked } from "@/lib/game";
-import type { Action, GameState, Option } from "@/lib/game";
+import { BELIEF, CLOCKS, CLUES, canRuleOut, evidence, hasSensor, reactorClock, testUnlocked } from "@/lib/game";
+import type { Action, GameState, Option, ZoneId } from "@/lib/game";
 import type { VoiceLine } from "@/lib/game/data/story";
 
 export const r0 = (n: number) => Math.round(n).toLocaleString("en-US");
@@ -54,7 +54,15 @@ export function stepDone(g: GameState, s: StepId): boolean {
 }
 
 /** The one thing to do next, in plain words. */
-export function coach(g: GameState): { step: StepId; title: string; text: string } {
+export interface Coach {
+  step: StepId;
+  title: string;
+  text: string;
+  /** where on the station the next thing is done, when it isn't in the guide */
+  zone?: ZoneId;
+}
+
+export function coach(g: GameState): Coach {
   const reactor = reactorClock(g);
   if (!g.surveyed)
     return { step: "look", title: "Fly a lap of the station", text: "You cannot fix what you cannot see. A quick survey shows you where the six zones are." };
@@ -70,11 +78,31 @@ export function coach(g: GameState): { step: StepId; title: string; text: string
     return { step: "fix", title: "Something is broken", text: "You found a problem. Fixing it now is cheaper than fixing it later." };
   if (!g.test && testUnlocked(g))
     return { step: "prove", title: "Run the test", text: "You have enough clues. Aim the cracked mirror at a block of ice and measure how much it moves. That is real proof." };
-  if (!g.test)
-    return { step: "prove", title: "Rule out a wrong idea", text: "Two of the three explanations are wrong. Cross one off when your clues allow it, and the test unlocks." };
+  if (!g.test) return proveNext(g);
   if (!g.broadcast)
     return { step: "report", title: "Tell the world", text: "Send your report to the network. Nothing you found helps anyone until it arrives." };
   return { step: "report", title: "You are ready to decide", text: "When you have done everything you can, press the big decision button at the bottom. You cannot come back." };
+}
+
+/**
+ * The test is locked until one wrong idea about the ice is proved wrong. Say what the question is
+ * (the pilot may never have opened the guide's "Prove it" page) and the one clue still missing.
+ */
+function proveNext(g: GameState): Coach {
+  const why = "Why did the ice move? Three ideas: the sensors are wrong, something else hit it, or Lantern 17's cracked mirror pushed it with light. Prove one of the first two wrong and the test unlocks.";
+  if (canRuleOut(g, "H1") || canRuleOut(g, "H2"))
+    return { step: "prove", title: "Cross off a wrong idea", text: `${why} Your clues already prove one wrong: cross it off in Prove it.` };
+  const sweep = hasSensor(g, "lidar") || hasSensor(g, "radar");
+  if (!sweep)
+    return {
+      step: "report",
+      title: "Skip the test",
+      text: "The test needs lidar or radar to rule out the other ideas, and your ship carries neither. Don't wait for it: send what you have found.",
+    };
+  const ways: { zone: ZoneId; text: string }[] = [];
+  if (!g.found.includes("C3") || !g.found.includes("C4")) ways.push({ zone: "mast", text: "download the logs at the Sensor mast" });
+  if (!g.found.includes("C2") && hasSensor(g, "thermal")) ways.push({ zone: "petals", text: "scan The Petals with the thermal camera" });
+  return { step: "prove", title: "One clue to go", text: `${why} To do that, ${ways.map((w) => w.text).join(", or ")}.`, zone: ways[0]?.zone };
 }
 
 /** A short list of what the network wants before it will believe a report. */

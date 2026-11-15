@@ -169,9 +169,11 @@ describe("station", () => {
     s = play(s, { type: "survey" });
     expect(step(s, { type: "test" }).ok).toBe(false);
     s = play(s, { type: "inspect", zone: "petals", method: "scan" });
-    expect(step(s, { type: "test" }).ok).toBe(false);
+    // C2 plus a lidar or radar sweep proves nothing else hit the ice: crossed off on the spot
+    expect(s.crossed).toEqual(["H2"]);
+    expect(step(s, { type: "crossOut", hyp: "H2" }).ok).toBe(false);
     expect(step(s, { type: "crossOut", hyp: "H3" }).ok).toBe(false);
-    s = play(s, { type: "crossOut", hyp: "H2" }, { type: "test" });
+    s = play(s, { type: "test" });
     expect(s.test?.bandPct).toBe(3);
     expect(s.found).toContain("C6");
     expect(s.crossed).toContain("H1");
@@ -179,7 +181,7 @@ describe("station", () => {
   });
   it("the test dims Lantern 17 for an hour, which costs the cities", () => {
     let s = toStation(4, [{ type: "hull", id: "hauler" }, { type: "sensor", id: "lidar" }, { type: "sensor", id: "thermal" }, { type: "sensor", id: "radar" }]);
-    s = play(s, { type: "survey" }, { type: "inspect", zone: "petals", method: "scan" }, { type: "crossOut", hyp: "H2" });
+    s = play(s, { type: "survey" }, { type: "inspect", zone: "petals", method: "scan" });
     const before = s.settlements.lowlight;
     const tested = play(s, { type: "test" });
     expect(before - tested.settlements.lowlight).toBeGreaterThan(1);
