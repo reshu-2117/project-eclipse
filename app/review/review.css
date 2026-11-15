@@ -1,0 +1,201 @@
+/* /review: every part of the game, one click away. Prefix rvw-. */
+.rvw {
+  min-height: 100vh;
+  color: var(--frost);
+  background:
+    radial-gradient(900px 500px at 85% -10%, rgba(255, 181, 71, 0.1), transparent 62%),
+    radial-gradient(800px 600px at -10% 30%, rgba(127, 212, 232, 0.07), transparent 62%),
+    var(--void);
+  padding-bottom: 90px;
+}
+.rvw h1,
+.rvw h2,
+.rvw p,
+.rvw ol {
+  margin: 0;
+}
+.rvw-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px max(20px, calc((100% - 1100px) / 2));
+  border-bottom: 1px solid rgba(220, 230, 240, 0.1);
+}
+.rvw-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-decoration: none;
+  color: var(--frost);
+}
+.rvw-brand span {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--amber);
+  box-shadow: 0 0 10px rgba(255, 181, 71, 0.5);
+}
+.rvw-play {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--amber);
+  border: 1px solid rgba(255, 181, 71, 0.45);
+  border-radius: 999px;
+  padding: 9px 16px;
+}
+.rvw-play:hover {
+  background: rgba(255, 181, 71, 0.08);
+}
+.rvw-main {
+  width: min(1100px, 100% - 40px);
+  margin: 0 auto;
+  padding-top: 54px;
+  display: grid;
+  gap: 22px;
+}
+.rvw-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.rvw h1 {
+  font-family: var(--serif);
+  font-size: clamp(42px, 6.4vw, 88px);
+  font-weight: 500;
+  line-height: 1.02;
+}
+.rvw h1 em {
+  color: var(--amber);
+}
+.rvw-lede {
+  max-width: 68ch;
+  font-size: 18px;
+  line-height: 1.7;
+  color: var(--body);
+}
+.rvw-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+  margin-top: 10px;
+}
+.rvw-list li {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  gap: 22px;
+  align-items: center;
+  padding: 22px 26px;
+  border-radius: 22px;
+  border: 1px solid rgba(220, 230, 240, 0.12);
+  background: radial-gradient(420px 160px at 0% 0%, rgba(255, 181, 71, 0.08), transparent 70%), rgba(9, 15, 27, 0.78);
+  transition:
+    border-color 0.25s,
+    transform 0.25s;
+}
+.rvw-list li:hover {
+  border-color: rgba(255, 181, 71, 0.5);
+  transform: translateY(-2px);
+}
+.rvw-n {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 181, 71, 0.6);
+  font-family: var(--serif);
+  font-size: 30px;
+  color: var(--amber);
+}
+.rvw-body {
+  display: grid;
+  gap: 8px;
+}
+.rvw-body h2 {
+  font-family: var(--serif);
+  font-size: clamp(26px, 3vw, 36px);
+  font-weight: 500;
+  line-height: 1.1;
+}
+.rvw-body p {
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--body);
+}
+.rvw-look {
+  font-size: 13.5px !important;
+  color: var(--dim) !important;
+}
+.rvw-look b {
+  color: var(--amber-soft);
+  font-weight: 500;
+}
+.rvw-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #1a1206;
+  background: linear-gradient(180deg, #ffc46a, var(--amber));
+  border-radius: 999px;
+  padding: 14px 24px;
+  min-height: 48px;
+  box-shadow: 0 10px 30px -12px rgba(255, 181, 71, 0.7);
+}
+.rvw-open:hover {
+  box-shadow: 0 14px 34px -12px rgba(255, 181, 71, 0.9);
+}
+.rvw-fb {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 22px 26px;
+  border-radius: 20px;
+  border: 1px dashed rgba(127, 212, 232, 0.4);
+}
+.rvw-fb h2 {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 500;
+}
+.rvw-fb p {
+  max-width: 70ch;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--body);
+}
+.rvw-fb b {
+  color: var(--frost);
+  font-weight: 500;
+}
+@media (max-width: 760px) {
+  .rvw-list li {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 14px;
+    padding: 18px 16px;
+  }
+  .rvw-n {
+    width: 44px;
+    height: 44px;
+    font-size: 24px;
+  }
+  .rvw-open {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+}
