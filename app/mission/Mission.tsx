@@ -246,8 +246,11 @@ function Ending({ game, onRebuild }: { game: GameState; onRebuild: () => void })
         </p>
         <Result s={game} />
         <div className="ms-gate-actions">
-          <button type="button" className="btn btn-lantern" onClick={onRebuild}>
-            Build a different ship <span aria-hidden="true">↗</span>
+          <Link href="/station" className="btn btn-lantern">
+            Open the full debrief <span aria-hidden="true">→</span>
+          </Link>
+          <button type="button" className="btn btn-ghost" onClick={onRebuild}>
+            Build a different ship
           </button>
           <Link href="/lab" className="btn btn-ghost">
             Watch a mission in the Mission Lab

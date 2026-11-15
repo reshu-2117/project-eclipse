@@ -114,6 +114,12 @@
       "voice": "Sarah",
       "bytes": 38913,
       "chars": 31
+    },
+    "dir-debrief": {
+      "hash": "2375f1884864",
+      "voice": "Sarah",
+      "bytes": 80709,
+      "chars": 78
     }
   }
 }

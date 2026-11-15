@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { dvLeft, evidence, iceClock, options, replay, step } from "@/lib/game";
 import type { Action, GameState } from "@/lib/game";
-import { CHOICE_ENTER, STATION_CLUE, STATION_ENTER, STATION_LEAK, STATION_TEST, type VoiceLine } from "@/lib/game/data/story";
-import Result from "../lab/Result";
+import { CHOICE_ENTER, DEBRIEF, STATION_CLUE, STATION_ENTER, STATION_LEAK, STATION_TEST, type VoiceLine } from "@/lib/game/data/story";
 import { Sound, playLine, saveSettings, type LineHandle, type Settings } from "../mission/audio";
 import { actionsTo } from "../mission/shortcut";
+import Debrief from "./Debrief";
 import { Decision, FinalHours } from "./Decide";
 import { Fix, Investigate, Look, Prove, Report } from "./Steps";
 import { STEPS, coach, clueCount, stepDone, r0, r1, type QuestCtx, type StepId } from "./shared";
@@ -158,6 +158,12 @@ export default function StationQuest() {
     saveRun({ v: 1, seed, actions });
     said.current.clear();
   };
+  // the same seed gives the same ice and the same event cards: only your choices change
+  const replaySame = () => {
+    if (!run) return;
+    saveRun({ v: 1, seed: run.seed, actions: [{ type: "begin" }] });
+    router.push("/mission");
+  };
   const playAgain = () => {
     saveRun(null);
     router.push("/mission");
@@ -207,6 +213,11 @@ export default function StationQuest() {
     if (tested) say(STATION_TEST);
   }, [tested, say]);
   const phase = game?.phase;
+  useEffect(() => {
+    if (phase !== "debrief") return;
+    const id = window.setTimeout(() => say(DEBRIEF), 900);
+    return () => window.clearTimeout(id);
+  }, [phase, say]);
   useEffect(() => {
     if (phase !== "choice") return;
     const id = window.setTimeout(() => say(CHOICE_ENTER), 800);
@@ -270,18 +281,7 @@ export default function StationQuest() {
       <TopBar settings={settings} set={setSettings} game={g} />
       <main className="sq-main" id="main">
         {g.phase === "debrief" ? (
-          <div className="sq-end">
-            <p className="sq-eyebrow">Mission over · hour {r1(g.t)}</p>
-            <Result s={g} />
-            <div className="sq-actions row">
-              <button type="button" className="sq-btn big" onClick={playAgain}>
-                Play again with a new ship <span aria-hidden="true">↗</span>
-              </button>
-              <Link href="/lab" className="sq-btn ghost big">
-                See how every crew did in the Mission Lab
-              </Link>
-            </div>
-          </div>
+          <Debrief game={g} onSame={replaySame} onNew={playAgain} />
         ) : g.phase === "choice" ? (
           <Decision c={ctx} />
         ) : g.phase === "endgame" ? (

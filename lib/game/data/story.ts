@@ -233,6 +233,13 @@ export const DEPART: VoiceLine = {
   text: "Undocking. Bring the data home.",
 };
 
+/** The Director at the end of the mission. */
+export const DEBRIEF: VoiceLine = {
+  id: "dir-debrief",
+  role: "director",
+  text: "Mission complete. Here is how it went, and what a better crew might have done.",
+};
+
 /** The other crew's mayday, the distress call card (E4). Their log holds clue C5 if you help. */
 export const DISTRESS: VoiceLine = {
   id: "crew-distress",
@@ -291,5 +298,6 @@ export const ALL_LINES: VoiceLine[] = [
   STATION_TEST,
   CHOICE_ENTER,
   DEPART,
+  DEBRIEF,
   DISTRESS,
 ];
