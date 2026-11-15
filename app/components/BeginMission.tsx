@@ -50,6 +50,9 @@ export default function BeginMission() {
           <div style={{ marginTop: 8 }}>
             <Link className="btn btn-lantern" href="/station?demo=1">
               Try the Station Mission <span aria-hidden="true">↗</span>
+            </Link>{" "}
+            <Link className="btn btn-ghost" href="/station?demo=debrief">
+              See the ending (the debrief) <span aria-hidden="true">↗</span>
             </Link>
           </div>
         </div>

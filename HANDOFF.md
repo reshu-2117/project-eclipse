@@ -193,3 +193,5 @@ Everything below is merged to `main` and live (the user said "do the not dones a
 - **Report**: `docs/submission/Project_Eclipse_Components_of_Project_2026.docx` status paragraph rewritten in place (same 8 pages in LibreOffice). Its Demo Link field still says `/lab`; switch it to the deck's public link once the deck is shared.
 - **Demo deck**: 7 slides, published as a claude.ai Slides artifact (https://claude.ai/artifact/PHwNVuoedmNLfbTQ5CrSGv). **Private until the user shares it** from its Share menu; NASA needs a public link. Source copy in `docs/submission/demo-deck/`.
 - 94 tests. Build passes. Floodlights dim at close range (a white hub at a few metres burned out).
+
+**Debrief shortcut**: `/station?demo=debrief` plays the best scripted crew to the end and opens the debrief straight away (linked from the home page's Mission 002 section). `/station?demo=1` still opens the station with a docked ship.

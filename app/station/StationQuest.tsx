@@ -5,7 +5,7 @@ import "./quest.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { dvLeft, evidence, iceClock, options, replay, replayPoint, step } from "@/lib/game";
+import { STRATEGIES, dvLeft, evidence, iceClock, options, replay, replayPoint, runPolicy, step } from "@/lib/game";
 import type { Action, GameState } from "@/lib/game";
 import { CHOICE_ENTER, DEBRIEF, STATION_CLUE, STATION_ENTER, STATION_LEAK, STATION_TEST, type VoiceLine } from "@/lib/game/data/story";
 import { GhostCompare, ReplayButtons } from "../mission/Replay";
@@ -157,11 +157,12 @@ export default function StationQuest() {
     else sound.lock();
   };
 
-  const startDemo = () => {
+  const startDemo = (kind: "station" | "debrief" = "station") => {
     sound.unlock();
     const q = Number(new URLSearchParams(window.location.search).get("seed"));
     const seed = Number.isFinite(q) && q > 0 ? Math.floor(q) : (Date.now() % 900000) + 1;
-    const { actions } = actionsTo(seed, "station");
+    // "debrief" plays the best scripted crew to the end, so the ending screen can be seen straight away
+    const actions = kind === "debrief" ? runPolicy(seed, STRATEGIES[0].policy).actions : actionsTo(seed, "station").actions;
     saveRun({ v: 1, seed, actions });
     said.current.clear();
   };
@@ -175,19 +176,22 @@ export default function StationQuest() {
   useEffect(() => {
     if (demoTried.current) return;
     demoTried.current = true;
-    if (new URLSearchParams(window.location.search).get("demo") !== "1") return;
+    const demo = new URLSearchParams(window.location.search).get("demo");
+    if (demo !== "1" && demo !== "debrief") return;
     // look at the saved mission itself (the first render only has the empty server snapshot)
     let ok = false;
+    let over = false;
     try {
       const saved = JSON.parse(window.sessionStorage.getItem(RUN_KEY) ?? "null") as Run | null;
       if (saved && saved.actions?.length) {
         const phase = replay(saved.seed, saved.actions).state.phase;
         ok = phase === "station" || phase === "choice" || phase === "endgame" || phase === "debrief";
+        over = phase === "debrief";
       }
     } catch {
       ok = false;
     }
-    if (!ok) startDemo();
+    if (demo === "debrief" ? !over : !ok) startDemo(demo === "debrief" ? "debrief" : "station");
     // runs once, on arrival
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -239,7 +243,7 @@ export default function StationQuest() {
               <Link href="/mission" className="sq-btn big">
                 Play the whole mission <span aria-hidden="true">↗</span>
               </Link>
-              <button type="button" className="sq-btn ghost big" onClick={startDemo}>
+              <button type="button" className="sq-btn ghost big" onClick={() => startDemo()}>
                 Try the station now
               </button>
             </div>
@@ -263,7 +267,7 @@ export default function StationQuest() {
               <Link href="/mission" className="sq-btn big">
                 Back to the mission <span aria-hidden="true">←</span>
               </Link>
-              <button type="button" className="sq-btn ghost big" onClick={startDemo}>
+              <button type="button" className="sq-btn ghost big" onClick={() => startDemo()}>
                 Try the station now
               </button>
             </div>
