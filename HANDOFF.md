@@ -194,6 +194,10 @@ Everything below is merged to `main` and live (the user said "do the not dones a
 - **Demo deck**: 7 slides, published as a claude.ai Slides artifact (https://claude.ai/artifact/PHwNVuoedmNLfbTQ5CrSGv). **Private until the user shares it** from its Share menu; NASA needs a public link. Source copy in `docs/submission/demo-deck/`.
 - 94 tests. Build passes. Floodlights dim at close range (a white hub at a few metres burned out).
 
+**Debrief shortcut**: `/station?demo=debrief` plays the best scripted crew to the end and opens the debrief straight away (linked from the home page's Mission 002 section). `/station?demo=1` still opens the station with a docked ship.
+
+**Review page (`/review`)**: one list of every part of the game, each with a button that opens that exact part: `/mission?start=opening` (opening then briefing), `?start=briefing`, `?start=hangar`, `?start=flight` (ready ship, straight to the flight deck), `/station?demo=1`, `/station?demo=debrief`, `/lab`. Linked from the home page menu and hero, and from the `/mission` start screen. The `start` links are handled in `Mission.tsx` (a requestAnimationFrame effect on arrival). Each card says what to look for and tells reviewers to quote the part number.
+
 ## Session 5 (Sun 15 Nov): simpler for players — Lumen, plain words, a clearer flight, less lag
 
 The user found the game too hard to follow. Built on BBC Games GEL and Nielsen Norman Group advice on contextual help: only the essentials, at the moment of need, point at the one next thing, easy to hide and call back.

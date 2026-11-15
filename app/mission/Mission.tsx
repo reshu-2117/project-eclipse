@@ -232,7 +232,7 @@ function Gate({
         <Toggles settings={settings} set={set} />
         <p className="ms-gate-skip">
           Reviewing? <button type="button" className="ms-gate-link" onClick={onFly}>Jump to the flight</button>: a ship is built and launched for you, and you fly it to Lantern 17. Or{" "}
-          <Link href="/station?demo=1">jump to the Station Mission</Link>, the guided part of the game after you dock.
+          <Link href="/station?demo=1">jump to the Station Mission</Link>, the guided part of the game after you dock. Or see <Link href="/review">every part of the game in one list</Link>.
         </p>
         <p className="ms-gate-small">Best with sound. Both switches can be changed at any time.</p>
         <p className="ms-gate-fine">
@@ -423,6 +423,29 @@ export default function Mission() {
     setIntro(null);
     setPlaying(true);
   };
+
+  // /mission?start=opening | briefing | hangar | flight: straight to one part of the game, for reviewers
+  const startedFromLink = useRef(false);
+  useEffect(() => {
+    if (startedFromLink.current) return;
+    const to = new URLSearchParams(window.location.search).get("start");
+    if (!to) return;
+    // start on the next frame, so the page has painted and the game's own handlers are ready
+    const id = requestAnimationFrame(() => {
+      startedFromLink.current = true;
+      if (to === "opening") begin();
+      else if (to === "briefing") {
+        begin();
+        setIntro("briefing");
+      } else if (to === "hangar") {
+        begin();
+        setIntro(null);
+      } else if (to === "flight") fly();
+    });
+    return () => cancelAnimationFrame(id);
+    // runs once, on arrival
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /** Replay with one change: the same seed, back to the hangar or the launch. */
   const replayAt = (at: "hangar" | "route") => {
