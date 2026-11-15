@@ -59,7 +59,7 @@ Design decisions made in Chunk 0 (where the handbook left a gap):
 4. **You send one packet, whenever you choose.** You can transmit as soon as you're at the station. Sending early helps the network turn sooner, but the network judges the evidence you had at that moment.
 5. **City reserves drain by the light they're missing,** not only when Lantern 17 is fully dark. Fixing the drift slows the drain. Beaming during the Eclipse costs the cities nothing.
 
-Tests: `npm test` (94 tests). They re-derive every handbook number, check the rules, play scripted crews to prove that all 8 endings can be reached, fly every route through the real flight physics with a robot pilot, and check the piloted engine actions.
+Tests: `npm test` (137 tests). They re-derive every handbook number, check the rules, play scripted crews to prove that all 8 endings can be reached, fly every route through the real flight physics with a robot pilot, and check the piloted engine actions.
 
 **The mission:** `/mission` is playable end to end: build a ship at the Wick, choose a route, **fly it yourself** on the flight deck (real burns, an ice fragment, three event cards, docking on thrusters), then continue on the Station Mission page (`/station`): look around, investigate, fix problems, prove it, tell the world, make the big decision, hold or leave, and read the debrief. The Station Mission is written in plain words for teenagers, with a coach that tells you the next move.
 
